@@ -26,8 +26,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
   const payColor = paid >= 100 ? '#8fba9f' : paid >= 50 ? '#c8a96e' : '#c46060'
   const remaining = order.total_price - order.deposit
 
-  const fieldStyle = { marginBottom: 16 }
-  const labelStyle = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--muted)', display: 'block', marginBottom: 3 }
+  const lbl: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 3 }
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}
@@ -41,7 +40,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
 
         <div style={{ overflowY:'auto', padding:24, flex:1 }}>
 
-          {/* Pipeline */}
+          {/* Pipeline stepper */}
           <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:2, overflow:'hidden', marginBottom:20 }}>
             {STAGES.map((s, i) => {
               const isDone = i < order.stage
@@ -60,29 +59,27 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
             })}
           </div>
 
-          {/* Image */}
           {order.image_url && (
-            <img src={order.image_url} style={{ width:'100%', maxHeight:180, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)', marginBottom:20 }} />
+            <img src={order.image_url} alt={order.product} style={{ width:'100%', maxHeight:180, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)', marginBottom:20 }} />
           )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-            <div style={fieldStyle}><label style={labelStyle}>ลูกค้า</label><p>{order.customer}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>Account</label><p>{order.account || '—'}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>ช่องทาง</label><p>{order.channel}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>สินค้า</label><p>{order.product}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>ขนาด</label><p>{order.size || '—'}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>จำนวน</label><p>{order.qty}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>วันเริ่มสั่ง</label><p>{formatDate(order.start_date)}</p></div>
-            <div style={fieldStyle}><label style={labelStyle}>กำหนดส่ง</label><p style={{ color: getDueColor(order.due_date) }}>{formatDate(order.due_date)}</p></div>
+            <div><label style={lbl}>ลูกค้า</label><p>{order.customer}</p></div>
+            <div><label style={lbl}>Account</label><p>{order.account || '—'}</p></div>
+            <div><label style={lbl}>ช่องทาง</label><p>{order.channel}</p></div>
+            <div><label style={lbl}>สินค้า</label><p>{order.product}</p></div>
+            <div><label style={lbl}>ขนาด</label><p>{order.size || '—'}</p></div>
+            <div><label style={lbl}>จำนวน</label><p>{order.qty}</p></div>
+            <div><label style={lbl}>วันเริ่มสั่ง</label><p>{formatDate(order.start_date)}</p></div>
+            <div><label style={lbl}>กำหนดส่ง</label><p style={{ color: getDueColor(order.due_date) }}>{formatDate(order.due_date)}</p></div>
 
-            <div style={{ gridColumn:'1/-1', ...fieldStyle }}>
-              <label style={labelStyle}>สถานที่จัดส่ง</label>
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={lbl}>สถานที่จัดส่ง</label>
               <p>{order.delivery || '—'}</p>
             </div>
 
-            {/* Materials table */}
-            <div style={{ gridColumn:'1/-1', ...fieldStyle }}>
-              <label style={labelStyle}>วัสดุแผ่น</label>
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={lbl}>วัสดุแผ่น</label>
               {(order.materials||[]).length > 0 ? (
                 <table style={{ width:'100%', borderCollapse:'collapse', marginTop:6 }}>
                   <thead>
@@ -103,9 +100,8 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
               ) : <p style={{ color:'var(--muted)' }}>—</p>}
             </div>
 
-            {/* Equipment table */}
-            <div style={{ gridColumn:'1/-1', ...fieldStyle }}>
-              <label style={labelStyle}>อุปกรณ์ / Hardware</label>
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={lbl}>อุปกรณ์ / Hardware</label>
               {(order.equipment||[]).length > 0 ? (
                 <table style={{ width:'100%', borderCollapse:'collapse', marginTop:6 }}>
                   <thead>
@@ -126,9 +122,8 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
               ) : <p style={{ color:'var(--muted)' }}>—</p>}
             </div>
 
-            {/* Payment */}
-            <div style={{ gridColumn:'1/-1', ...fieldStyle }}>
-              <label style={labelStyle}>การโอนเงิน</label>
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={lbl}>การโอนเงิน</label>
               <div style={{ marginTop:6 }}>
                 {[
                   { label:'ราคารวม', value: order.total_price ? order.total_price.toLocaleString()+' ฿' : '—', color:'var(--text)' },
@@ -148,7 +143,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
 
             {order.notes && (
               <div style={{ gridColumn:'1/-1' }}>
-                <label style={labelStyle}>หมายเหตุ</label>
+                <label style={lbl}>หมายเหตุ</label>
                 <p style={{ color:'var(--muted)' }}>{order.notes}</p>
               </div>
             )}

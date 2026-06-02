@@ -78,7 +78,7 @@ export default function OrderTable({ orders, onEdit, onDelete, onDetail }: Props
                 <td style={{ padding:'14px 10px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     {o.image_url
-                      ? <img src={o.image_url} style={{ width:36, height:36, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)' }} />
+                      ? <img alt={o.product} src={o.image_url} style={{ width:36, height:36, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)' }} />
                       : <div style={{ width:36, height:36, background:'var(--surface2)', border:'1px dashed var(--border)', borderRadius:2, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>□</div>
                     }
                     <span>{o.product}</span>

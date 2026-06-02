@@ -1,5 +1,5 @@
 'use client'
-import { Order, STAGES } from '@/lib/supabase'
+import { Order } from '@/lib/supabase'
 
 type Props = { orders: Order[] }
 
@@ -7,20 +7,15 @@ export default function StatsBar({ orders }: Props) {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7)
 
-  const inProd = orders.filter(o => o.stage > 0 && o.stage < 6).length
-  const done = orders.filter(o => o.stage === 6).length
-  const dueThisWeek = orders.filter(o => {
-    if (!o.due_date || o.stage === 6) return false
-    return new Date(o.due_date) <= weekEnd
-  }).length
-  const unpaid = orders.filter(o => o.total_price > 0 && o.deposit < o.total_price).length
-
   const stats = [
     { label: 'Total Orders', value: orders.length, color: 'var(--accent)' },
-    { label: 'In Production', value: inProd, color: 'var(--text)' },
-    { label: 'Due This Week', value: dueThisWeek, color: 'var(--danger)' },
-    { label: 'Completed', value: done, color: 'var(--accent2)' },
-    { label: 'Awaiting Payment', value: unpaid, color: 'var(--text)' },
+    { label: 'In Production', value: orders.filter(o => o.stage > 0 && o.stage < 6).length, color: 'var(--text)' },
+    { label: 'Due This Week', value: orders.filter(o => {
+      if (!o.due_date || o.stage === 6) return false
+      return new Date(o.due_date) <= weekEnd
+    }).length, color: 'var(--danger)' },
+    { label: 'Completed', value: orders.filter(o => o.stage === 6).length, color: 'var(--accent2)' },
+    { label: 'Awaiting Payment', value: orders.filter(o => o.total_price > 0 && o.deposit < o.total_price).length, color: 'var(--text)' },
   ]
 
   return (

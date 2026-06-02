@@ -41,7 +41,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
     }
   }, [open, order])
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: keyof Order, v: Order[keyof Order]) => setForm(f => ({ ...f, [k]: v }))
 
   const paid = (form.total_price || 0) > 0
     ? Math.round(((form.deposit || 0) / (form.total_price || 1)) * 100)
@@ -59,12 +59,12 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
   const addMat = () => setMaterials(m => [...m, { material: '5052 Aluminum', thickness: '', qty: 1 }])
   const removeMat = (i: number) => setMaterials(m => m.filter((_,idx) => idx !== i))
-  const updateMat = (i: number, k: keyof Material, v: any) =>
+  const updateMat = (i: number, k: keyof Material, v: string | number) =>
     setMaterials(m => m.map((item, idx) => idx === i ? { ...item, [k]: v } : item))
 
   const addEq = () => setEquipment(e => [...e, { name: '', unit: 'ตัว', qty: 1 }])
   const removeEq = (i: number) => setEquipment(e => e.filter((_,idx) => idx !== i))
-  const updateEq = (i: number, k: keyof Equipment, v: any) =>
+  const updateEq = (i: number, k: keyof Equipment, v: string | number) =>
     setEquipment(e => e.map((item, idx) => idx === i ? { ...item, [k]: v } : item))
 
   const handleSave = async () => {
@@ -74,67 +74,63 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
   if (!open) return null
 
-  const inputStyle = { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 2, color: 'var(--text)', fontFamily: '"DM Mono", monospace', fontSize: 13, padding: '9px 12px', outline: 'none', width: '100%' }
-  const labelStyle = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--muted)', display: 'block', marginBottom: 6 }
+  const inp: React.CSSProperties = { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 2, color: 'var(--text)', fontFamily: '"DM Mono", monospace', fontSize: 13, padding: '9px 12px', outline: 'none', width: '100%' }
+  const inpSm: React.CSSProperties = { ...inp, padding: '7px 10px' }
+  const lbl: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 6 }
+
+  const listHeader = (cols: string[], grid: string) => (
+    <div style={{ display:'grid', gridTemplateColumns: grid, gap:8, padding:'6px 12px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
+      {cols.map((h,i) => <span key={i} style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted)' }}>{h}</span>)}
+    </div>
+  )
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, width:720, maxWidth:'95vw', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column' }}>
-        
-        {/* Header */}
+
         <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--surface)' }}>
           <div style={{ fontFamily:'Fraunces,serif', fontSize:18, fontWeight:300 }}>{order ? 'Edit Order' : 'New Order'}</div>
           <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer' }}>×</button>
         </div>
 
-        {/* Body */}
         <div style={{ overflowY:'auto', padding:24, flex:1 }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
 
-            {/* Row 1 */}
-            <div><label style={labelStyle}>ชื่อลูกค้า</label><input style={inputStyle} value={form.customer||''} onChange={e=>set('customer',e.target.value)} /></div>
-            <div><label style={labelStyle}>Account / Handle</label><input style={inputStyle} value={form.account||''} onChange={e=>set('account',e.target.value)} placeholder="@name หรือ LINE ID" /></div>
+            <div><label style={lbl}>ชื่อลูกค้า</label><input style={inp} value={form.customer||''} onChange={e=>set('customer',e.target.value)} /></div>
+            <div><label style={lbl}>Account / Handle</label><input style={inp} value={form.account||''} onChange={e=>set('account',e.target.value)} placeholder="@name หรือ LINE ID" /></div>
 
-            {/* Row 2 */}
             <div>
-              <label style={labelStyle}>ช่องทางที่สั่ง</label>
-              <select style={inputStyle} value={form.channel||'Facebook'} onChange={e=>set('channel',e.target.value)}>
+              <label style={lbl}>ช่องทางที่สั่ง</label>
+              <select style={inp} value={form.channel||'Facebook'} onChange={e=>set('channel',e.target.value)}>
                 {CHANNELS.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div><label style={labelStyle}>ชื่อสินค้า</label><input style={inputStyle} value={form.product||''} onChange={e=>set('product',e.target.value)} placeholder="เช่น ZEN Stool, MET Table" /></div>
+            <div><label style={lbl}>ชื่อสินค้า</label><input style={inp} value={form.product||''} onChange={e=>set('product',e.target.value)} placeholder="เช่น ZEN Stool, MET Table" /></div>
 
-            {/* Row 3 */}
-            <div><label style={labelStyle}>ขนาด (กว้าง × ลึก × สูง)</label><input style={inputStyle} value={form.size||''} onChange={e=>set('size',e.target.value)} placeholder="เช่น 40×40×75 cm" /></div>
-            <div><label style={labelStyle}>จำนวน</label><input style={inputStyle} type="number" min={1} value={form.qty||1} onChange={e=>set('qty',parseInt(e.target.value)||1)} /></div>
+            <div><label style={lbl}>ขนาด (กว้าง × ลึก × สูง)</label><input style={inp} value={form.size||''} onChange={e=>set('size',e.target.value)} placeholder="เช่น 40×40×75 cm" /></div>
+            <div><label style={lbl}>จำนวน</label><input style={inp} type="number" min={1} value={form.qty||1} onChange={e=>set('qty',parseInt(e.target.value)||1)} /></div>
 
-            {/* Row 4 */}
-            <div><label style={labelStyle}>วันเริ่มสั่ง</label><input style={inputStyle} type="date" value={form.start_date||''} onChange={e=>set('start_date',e.target.value)} /></div>
-            <div><label style={labelStyle}>กำหนดส่ง</label><input style={inputStyle} type="date" value={form.due_date||''} onChange={e=>set('due_date',e.target.value)} /></div>
+            <div><label style={lbl}>วันเริ่มสั่ง</label><input style={inp} type="date" value={form.start_date||''} onChange={e=>set('start_date',e.target.value)} /></div>
+            <div><label style={lbl}>กำหนดส่ง</label><input style={inp} type="date" value={form.due_date||''} onChange={e=>set('due_date',e.target.value)} /></div>
 
-            {/* Delivery */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>สถานที่จัดส่ง</label>
-              <input style={inputStyle} value={form.delivery||''} onChange={e=>set('delivery',e.target.value)} />
+              <label style={lbl}>สถานที่จัดส่ง</label>
+              <input style={inp} value={form.delivery||''} onChange={e=>set('delivery',e.target.value)} />
             </div>
 
             {/* MATERIALS */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>วัสดุแผ่น</label>
+              <label style={lbl}>วัสดุแผ่น</label>
               <div style={{ border:'1px solid var(--border)', borderRadius:2, overflow:'hidden' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 90px 90px 32px', gap:8, padding:'6px 12px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
-                  {['วัสดุ','ความหนา (mm)','จำนวน',''].map((h,i) => (
-                    <span key={i} style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted)' }}>{h}</span>
-                  ))}
-                </div>
+                {listHeader(['วัสดุ','ความหนา (mm)','จำนวน',''], '1fr 90px 90px 32px')}
                 {materials.map((m, i) => (
                   <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 90px 90px 32px', gap:8, padding:'10px 12px', borderBottom:'1px solid var(--border)', background:'var(--surface2)' }}>
-                    <select style={{ ...inputStyle, padding:'7px 10px' }} value={m.material} onChange={e=>updateMat(i,'material',e.target.value)}>
+                    <select style={inpSm} value={m.material} onChange={e=>updateMat(i,'material',e.target.value)}>
                       {MAT_OPTIONS.map(o => <option key={o}>{o}</option>)}
                     </select>
-                    <input style={{ ...inputStyle, padding:'7px 10px' }} type="number" placeholder="mm" step={0.5} min={0} value={m.thickness} onChange={e=>updateMat(i,'thickness',e.target.value)} />
-                    <input style={{ ...inputStyle, padding:'7px 10px' }} type="number" min={1} value={m.qty} onChange={e=>updateMat(i,'qty',parseInt(e.target.value)||1)} />
+                    <input style={inpSm} type="number" placeholder="mm" step={0.5} min={0} value={m.thickness} onChange={e=>updateMat(i,'thickness',e.target.value)} />
+                    <input style={inpSm} type="number" min={1} value={m.qty} onChange={e=>updateMat(i,'qty',parseInt(e.target.value)||1)} />
                     <button onClick={()=>removeMat(i)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:15 }}>✕</button>
                   </div>
                 ))}
@@ -148,20 +144,16 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
             {/* EQUIPMENT */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>อุปกรณ์ / Hardware</label>
+              <label style={lbl}>อุปกรณ์ / Hardware</label>
               <div style={{ border:'1px solid var(--border)', borderRadius:2, overflow:'hidden' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 100px 90px 32px', gap:8, padding:'6px 12px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
-                  {['รายการ (ระบุสเปค เช่น สกรูหัวแบน M5×20)','หน่วย','จำนวน',''].map((h,i) => (
-                    <span key={i} style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted)' }}>{h}</span>
-                  ))}
-                </div>
+                {listHeader(['รายการ (ระบุสเปค เช่น สกรูหัวแบน M5×20)','หน่วย','จำนวน',''], '1fr 100px 90px 32px')}
                 {equipment.map((e, i) => (
                   <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 100px 90px 32px', gap:8, padding:'10px 12px', borderBottom:'1px solid var(--border)', background:'var(--surface2)' }}>
-                    <input style={{ ...inputStyle, padding:'7px 10px' }} type="text" placeholder="เช่น สกรูหัวแบน M5×20, น็อตตัวเมีย M5 ล็อค" value={e.name} onChange={ev=>updateEq(i,'name',ev.target.value)} />
-                    <select style={{ ...inputStyle, padding:'7px 10px' }} value={e.unit} onChange={ev=>updateEq(i,'unit',ev.target.value)}>
+                    <input style={inpSm} type="text" placeholder="เช่น สกรูหัวแบน M5×20" value={e.name} onChange={ev=>updateEq(i,'name',ev.target.value)} />
+                    <select style={inpSm} value={e.unit} onChange={ev=>updateEq(i,'unit',ev.target.value)}>
                       {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
                     </select>
-                    <input style={{ ...inputStyle, padding:'7px 10px' }} type="number" min={1} value={e.qty} onChange={ev=>updateEq(i,'qty',parseInt(ev.target.value)||1)} />
+                    <input style={inpSm} type="number" min={1} value={e.qty} onChange={ev=>updateEq(i,'qty',parseInt(ev.target.value)||1)} />
                     <button onClick={()=>removeEq(i)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:15 }}>✕</button>
                   </div>
                 ))}
@@ -175,11 +167,11 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
             {/* IMAGE */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>รูปสินค้า</label>
+              <label style={lbl}>รูปสินค้า</label>
               <div style={{ border:'1px dashed var(--border)', borderRadius:2, padding:20, textAlign:'center', cursor:'pointer', position:'relative' }}>
                 <input type="file" accept="image/*" onChange={handleImage} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
                 {imagePreview
-                  ? <img src={imagePreview} style={{ maxHeight:80, maxWidth:'100%', borderRadius:2 }} />
+                  ? <img src={imagePreview} alt="product preview" style={{ maxHeight:80, maxWidth:'100%', borderRadius:2 }} />
                   : <div style={{ color:'var(--muted)', fontSize:11, letterSpacing:'0.08em' }}>คลิกหรือลากไฟล์ภาพมาวางที่นี่</div>
                 }
               </div>
@@ -187,7 +179,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
             {/* STAGE */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>Stage การผลิต</label>
+              <label style={lbl}>Stage การผลิต</label>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
                 {STAGES.map((s, i) => (
                   <button key={i} onClick={()=>set('stage',i)} style={{
@@ -203,24 +195,20 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
 
             {/* PAYMENT */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>การโอนเงิน</label>
+              <label style={lbl}>การโอนเงิน</label>
               <div style={{ border:'1px solid var(--border)', borderRadius:2, padding:14 }}>
-                {[
-                  { label:'ราคารวม', key:'total_price', readonly:false },
-                  { label:'โอนแล้ว', key:'deposit', readonly:false },
-                  { label:'ค้างชำระ', key:'_remaining', readonly:true },
-                ].map(row => (
-                  <div key={row.key} style={{ display:'flex', gap:12, alignItems:'center', marginBottom:8 }}>
-                    <label style={{ ...labelStyle, minWidth:90, marginBottom:0 }}>{row.label}</label>
-                    <input
-                      style={{ ...inputStyle, flex:1, opacity: row.readonly ? 0.6 : 1 }}
-                      type="number"
-                      readOnly={row.readonly}
-                      value={row.key === '_remaining' ? remaining : (form as any)[row.key] || ''}
-                      onChange={e => !row.readonly && set(row.key, parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                ))}
+                <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:8 }}>
+                  <label style={{ ...lbl, minWidth:90, marginBottom:0 }}>ราคารวม</label>
+                  <input style={{ ...inp, flex:1 }} type="number" value={form.total_price||''} onChange={e=>set('total_price', parseFloat(e.target.value)||0)} />
+                </div>
+                <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:8 }}>
+                  <label style={{ ...lbl, minWidth:90, marginBottom:0 }}>โอนแล้ว</label>
+                  <input style={{ ...inp, flex:1 }} type="number" value={form.deposit||''} onChange={e=>set('deposit', parseFloat(e.target.value)||0)} />
+                </div>
+                <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:0 }}>
+                  <label style={{ ...lbl, minWidth:90, marginBottom:0 }}>ค้างชำระ</label>
+                  <input style={{ ...inp, flex:1, opacity:0.6 }} type="number" value={remaining} readOnly />
+                </div>
                 <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between' }}>
                   <span style={{ color:'var(--muted)', fontSize:11 }}>โอนแล้ว</span>
                   <strong style={{ color:'var(--accent2)' }}>{paid}%</strong>
@@ -228,16 +216,14 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
               </div>
             </div>
 
-            {/* NOTES */}
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={labelStyle}>หมายเหตุ</label>
-              <textarea style={inputStyle} value={form.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="ข้อมูลเพิ่มเติม..." />
+              <label style={lbl}>หมายเหตุ</label>
+              <textarea style={inp} value={form.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="ข้อมูลเพิ่มเติม..." />
             </div>
 
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end', background:'var(--surface)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
