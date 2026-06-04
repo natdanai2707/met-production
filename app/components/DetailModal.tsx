@@ -60,6 +60,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
           </div>
 
           {order.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={order.image_url} alt={order.product} style={{ width:'100%', maxHeight:180, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)', marginBottom:20 }} />
           )}
 

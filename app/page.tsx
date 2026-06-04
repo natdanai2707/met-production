@@ -61,6 +61,7 @@ export default function Home() {
       if (isEdit) {
         await supabase.from('orders').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editOrder!.id)
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _drop, ...insertPayload } = payload as Order
         await supabase.from('orders').insert({ ...insertPayload, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       }
