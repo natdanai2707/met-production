@@ -48,14 +48,30 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
     : 0
   const remaining = Math.max(0, (form.total_price || 0) - (form.deposit || 0))
 
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const loadImageFile = (file: File) => {
     setImageFile(file)
     const reader = new FileReader()
     reader.onload = ev => setImagePreview(ev.target?.result as string)
     reader.readAsDataURL(file)
   }
+
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) loadImageFile(file)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handlePaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'))
+      if (!item) return
+      const file = item.getAsFile()
+      if (file) loadImageFile(file)
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const addMat = () => setMaterials(m => [...m, { material: '5052 Aluminum', thickness: '', qty: 1 }])
   const removeMat = (i: number) => setMaterials(m => m.filter((_,idx) => idx !== i))
@@ -130,7 +146,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
                       {MAT_OPTIONS.map(o => <option key={o}>{o}</option>)}
                     </select>
                     <input style={inpSm} type="number" placeholder="mm" step={0.5} min={0} value={m.thickness} onChange={e=>updateMat(i,'thickness',e.target.value)} />
-                    <input style={inpSm} type="number" min={1} value={m.qty} onChange={e=>updateMat(i,'qty',parseInt(e.target.value)||1)} />
+                    <input style={inpSm} type="number" min={0.1} step={0.5} value={m.qty} onChange={e=>updateMat(i,'qty',parseFloat(e.target.value)||1)} />
                     <button onClick={()=>removeMat(i)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:15 }}>✕</button>
                   </div>
                 ))}
@@ -171,8 +187,9 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
               <div style={{ border:'1px dashed var(--border)', borderRadius:2, padding:20, textAlign:'center', cursor:'pointer', position:'relative' }}>
                 <input type="file" accept="image/*" onChange={handleImage} style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer' }} />
                 {imagePreview
+                  // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={imagePreview} alt="product preview" style={{ maxHeight:80, maxWidth:'100%', borderRadius:2 }} />
-                  : <div style={{ color:'var(--muted)', fontSize:11, letterSpacing:'0.08em' }}>คลิกหรือลากไฟล์ภาพมาวางที่นี่</div>
+                  : <div style={{ color:'var(--muted)', fontSize:11, letterSpacing:'0.06em', lineHeight:1.8 }}>คลิกเพื่อเลือกไฟล์ · ลากวาง · หรือ Ctrl+V วางจาก clipboard</div>
                 }
               </div>
             </div>
