@@ -57,10 +57,12 @@ export default function Home() {
         }
       }
       const payload = { ...data, image_url }
-      if (editOrder?.id) {
-        await supabase.from('orders').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editOrder.id)
+      const isEdit = !!(editOrder?.id)
+      if (isEdit) {
+        await supabase.from('orders').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editOrder!.id)
       } else {
-        await supabase.from('orders').insert({ ...payload, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        const { id: _drop, ...insertPayload } = payload as Order
+        await supabase.from('orders').insert({ ...insertPayload, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       }
       await fetchOrders()
       setModalOpen(false)
