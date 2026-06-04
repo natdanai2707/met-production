@@ -6,6 +6,7 @@ type Props = {
   onEdit: (o: Order) => void
   onDelete: (id: string) => void
   onDetail: (o: Order) => void
+  onDuplicate: (o: Order) => void
 }
 
 const STAGE_STYLE = [
@@ -40,7 +41,7 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-export default function OrderTable({ orders, onEdit, onDelete, onDetail }: Props) {
+export default function OrderTable({ orders, onEdit, onDelete, onDetail, onDuplicate }: Props) {
   if (orders.length === 0) return (
     <div style={{ textAlign: 'center', padding: '80px 32px', color: 'var(--muted)' }}>
       <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>⬜</div>
@@ -112,8 +113,9 @@ export default function OrderTable({ orders, onEdit, onDelete, onDetail }: Props
                 <td style={{ padding:'14px 10px', color:'var(--muted)', maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{o.delivery || '—'}</td>
                 <td style={{ padding:'14px 10px' }}>
                   <div style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
-                    <button onClick={() => onEdit(o)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:2, width:26, height:26, cursor:'pointer', fontSize:13 }}>✎</button>
-                    <button onClick={() => onDelete(o.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--danger)', borderRadius:2, width:26, height:26, cursor:'pointer', fontSize:13 }}>✕</button>
+                    <button onClick={() => onDuplicate(o)} title="Duplicate" style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:2, width:26, height:26, cursor:'pointer', fontSize:12 }}>⎘</button>
+                    <button onClick={() => onEdit(o)} title="Edit" style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:2, width:26, height:26, cursor:'pointer', fontSize:13 }}>✎</button>
+                    <button onClick={() => onDelete(o.id)} title="Delete" style={{ background:'none', border:'1px solid var(--border)', color:'var(--danger)', borderRadius:2, width:26, height:26, cursor:'pointer', fontSize:13 }}>✕</button>
                   </div>
                 </td>
               </tr>
