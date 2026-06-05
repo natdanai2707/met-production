@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, Order, CHANNELS, STAGES } from '@/lib/supabase'
+import Link from 'next/link'
 import StatsBar from './components/StatsBar'
 import OrderTable from './components/OrderTable'
 import OrderModal from './components/OrderModal'
@@ -120,6 +121,9 @@ export default function Home() {
             onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor='var(--accent)'; (e.target as HTMLButtonElement).style.color='var(--accent)' }}
             onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor='var(--border)'; (e.target as HTMLButtonElement).style.color='var(--muted)' }}
           >↗ Report</button>
+          <Link href="/calculator" style={{ background:'none', border:'1px solid var(--border)', borderRadius:2, color:'var(--muted)', fontFamily:'"DM Mono",monospace', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', padding:'5px 12px', cursor:'pointer', textDecoration:'none', display:'inline-flex', alignItems:'center' }}>
+            🧮 Calculator
+          </Link>
         </div>
         <button className="btn btn-primary" onClick={openNew}>+ New Order</button>
       </div>
