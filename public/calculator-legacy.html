@@ -82,8 +82,8 @@
   .btn-accent { background: var(--accent); color: white; }
   .btn-accent:hover { background: var(--accent-light); }
   .btn-success { background: var(--success); color: white; }
-  .btn-danger { background: #ef5350; color: white; }
-  .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
   .btn-outline:hover { background: var(--primary); color: white; }
   .btn-sm { padding: 5px 12px; font-size: 13px; }
   .btn-xs { padding: 3px 8px; font-size: 12px; }
@@ -92,7 +92,7 @@
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { background: #e8eef4; color: var(--primary); padding: 9px 12px; text-align: left; font-weight: 700; font-size: 13px; }
   td { padding: 8px 12px; border-bottom: 1px solid #edf2f7; vertical-align: middle; }
-  tr:hover td { background: #f7faff; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
   .td-num { text-align: right; font-family: monospace; }
   .td-center { text-align: center; }
 
@@ -118,7 +118,7 @@
   .result-main .price span { font-size: 22px; font-weight: 400; margin-right: 4px; }
 
   .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .result-box { background: white; border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+  .result-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 14px; }
   .result-box .label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
   .result-box .value { font-size: 22px; font-weight: 700; color: var(--primary); }
   .result-box .value.accent { color: var(--accent); }
@@ -286,6 +286,38 @@
     z-index: 100; }
   .floating-bar .total-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .floating-bar .total-val { font-family: "Fraunces", serif; font-size: 24px; font-weight: 300; color: var(--accent); }
+
+  /* Text color fixes */
+  input, select, textarea,
+  input.input-yellow, input.input-green,
+  select.input-yellow, select.input-green {
+    background: var(--surface2) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    border-radius: 2px !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: var(--muted) !important;
+    opacity: 1;
+  }
+  .card-header { color: var(--muted); }
+  input, select, textarea { color: var(--text) !important; }
+  input::placeholder { color: var(--muted); }
+  select option { color: var(--text); background: var(--surface2); }
+  
+  /* Nesting section header — gold bg needs dark text */
+  .nest-section-header { color: #0e0e0e !important; }
+  
+  /* Compare highlight row */
+  .compare-highlight td { color: var(--text) !important; }
+
+  /* Override any remaining light backgrounds with hardcoded colors */
+  [style*="background:rgba(143,186,159,0.12)"], [style*="background: #e8f5e9"],
+  [style*="background:rgba(196,96,96,0.12)"], [style*="background: #fce4ec"],
+  [style*="background:rgba(200,169,110,0.1)"], [style*="background: #fff3e0"],
+  [style*="background:rgba(138,180,224,0.1)"], [style*="background: #e3f2fd"] {
+    color: #0e0e0e !important;
+  }
 </style>
 </head>
 <body>
@@ -352,8 +384,8 @@
           <input type="number" id="markup" class="input-yellow" value="20" min="0" step="5" oninput="calculate()">
         </div>
         <div>
-          <label>ราคาเดี่ยว (สั่ง 1 ตัว)</label>
-          <input type="number" id="singlePremium" placeholder="เพิ่ม ฿ สำหรับสั่งเดี่ยว" oninput="calculate()">
+          <label>Markup เดี่ยว % (สั่ง 1 ตัว)</label>
+          <input type="number" id="singleMarkup" class="input-yellow" value="10" min="0" step="5" oninput="calculate()">
         </div>
         <div>
           <label>ประเภทงาน</label>
@@ -372,7 +404,7 @@
     <div class="card-body">
       <div class="legend no-print">
         <div class="legend-item"><div class="legend-dot" style="background:#fffde7;border:1.5px solid #f5c060"></div> ช่องกรอกข้อมูล</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e8f5e9;border:1.5px solid #81c784"></div> คำนวณอัตโนมัติ</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(143,186,159,0.12);border:1.5px solid #81c784"></div> คำนวณอัตโนมัติ</div>
       </div>
       <div id="materialList"></div>
       <button class="btn btn-outline btn-sm no-print" onclick="addMaterial()">➕ เพิ่มวัสดุ</button>
@@ -475,7 +507,7 @@
       <!-- Per-material yield config (shown after selecting) -->
       <div id="cmp_yieldConfig" style="display:none;">
         <div class="section-title">Yield แต่ละวัสดุ (ชิ้น/แผ่น)</div>
-        <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;">
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;">
           <table style="margin:0;">
             <thead>
               <tr>
@@ -652,14 +684,14 @@ const DEFAULT_SERVICES = [
   { id:'weld',     name:'ค่าเชื่อม',                       unitPrice:0,   qty:1, unit:'จุด',   enabled:false, polishType:null },
   { id:'grind',    name:'ปาด เจีย ลบคม',                   unitPrice:100, qty:1, unit:'ชิ้น',  enabled:true,  polishType:null },
   { id:'paint',    name:'ค่าทำสี (เหล็ก)',                 unitPrice:0,   qty:1, unit:'ชิ้น',  enabled:false, polishType:null },
-  { id:'hairline', name:'ค่าขัดแฮร์ไลน์ (สแตนเลส)',       unitPrice:0,   qty:1, unit:'ชิ้น',  enabled:false, polishType:'hairline', sides:2 },
+  { id:'hairline', name:'ค่าขัดแฮร์ไลน์ (สแตนเลส)',       unitPrice:0,   qty:1, unit:'ชิ้น',  enabled:true,  polishType:'hairline', sides:2 },
   { id:'scotch',   name:'ค่าขัดสก็อตไบร์ท (อลูมิเนียม)',  unitPrice:0,   qty:1, unit:'ชิ้น',  enabled:false, polishType:'scotch',   sides:2 },
   { id:'sandblast',name:'ยิงทราย',                         unitPrice:0,   qty:1, unit:'ชิ้น',  enabled:false, polishType:null },
-  { id:'labor',    name:'ค่าแรงประกอบ',                    unitPrice:300, qty:1, unit:'ชิ้น',  enabled:false, polishType:null },
-  { id:'screw',    name:'สกรู/อุปกรณ์ยึด',                 unitPrice:10,  qty:4, unit:'ชุด',   enabled:true,  polishType:null },
-  { id:'misc',     name:'อุปกรณ์จิปาถะ',                   unitPrice:100, qty:1, unit:'รายการ',enabled:true,  polishType:null },
-  { id:'design',   name:'ค่าดีไซน์',                       unitPrice:0,   qty:1, unit:'งาน',   enabled:false, polishType:null },
-  { id:'drawing',  name:'ค่าทำแบบ',                        unitPrice:200, qty:1, unit:'งาน',   enabled:false, polishType:null },
+  { id:'labor',    name:'ค่าแรงประกอบ',                    unitPrice:200, qty:1, unit:'ชิ้น',  enabled:false, polishType:null },
+  { id:'screw',    name:'สกรู/อุปกรณ์ยึด',                 unitPrice:10,  qty:4, unit:'ชุด',   enabled:false, polishType:null },
+  { id:'misc',     name:'อุปกรณ์จิปาถะ',                   unitPrice:100, qty:1, unit:'รายการ',enabled:false, polishType:null },
+  { id:'design',   name:'ค่าดีไซน์',                       unitPrice:300, qty:1, unit:'งาน',   enabled:true,  polishType:null },
+  { id:'drawing',  name:'ค่าทำแบบ',                        unitPrice:300, qty:1, unit:'งาน',   enabled:true,  polishType:null },
 ];
 
 // เก็บผลค่าขัดจาก Nesting เพื่อโยงมาหน้าคำนวณ
@@ -704,7 +736,10 @@ window.onload = function() {
   renderDatabase();
   addMaterial();
   initServices();
-  addOther({name:'เบาะ/ผ้า', amount:0});
+  addOther({name:'ค่า Packaging', amount:150, enabled:true});
+  addOther({name:'สกรู/อุปกรณ์ยึด', amount:40, enabled:false});
+  addOther({name:'อุปกรณ์จิปาถะ', amount:100, enabled:false});
+  addOther({name:'เบาะ/ผ้า', amount:0, enabled:false});
   renderCompareSelect();
   renderCompare();
   calculate();
@@ -730,7 +765,7 @@ function switchPage(p) { // ใช้เรียกแบบ programmatic (ไ�
 // =========================================================
 function addMaterial(preset) {
   const id = ++matIdCounter;
-  materials.push({ id, matId: preset?.matId || '', yield: preset?.yield || 6, custom: preset?.custom || false });
+  materials.push({ id, matId: preset?.matId || '', yield: preset?.yield || 6, custom: preset?.custom || false, costOverride: null, customPrice: preset?.customPrice || 0 });
   renderMaterials();
 }
 
@@ -761,10 +796,10 @@ function renderMaterials() {
       </div>
       <div>
         <label>ราคาแผ่น (฿)</label>
-        ${m.matId==='__custom__'
-          ? `<input type="number" class="input-yellow" value="${m.customPrice||0}" placeholder="ราคา฿" onchange="updateMaterial(${m.id},'customPrice',+this.value)">`
-          : `<input type="text" class="input-green" value="${mat?fmt(mat.price):'-'}" readonly>`
-        }
+        <input type="number" class="input-yellow"
+          value="${m.matId==='__custom__' ? (m.customPrice||0) : (mat ? mat.price : 0)}"
+          placeholder="ราคา฿"
+          onchange="updateSheetPrice(${m.id}, +this.value)">
         ${mat?`<div class="hint">${mat.size} · ${mat.thick}mm · ${mat.note}</div>`:''}
       </div>
       <div>
@@ -773,9 +808,14 @@ function renderMaterials() {
         ${mat?`<div class="hint">พื้นที่/ชิ้น: ${fmt(areaPerPiece,3)} ตร.ม.</div>`:''}
       </div>
       <div>
-        <label>ต้นทุนวัสดุ/ชิ้น (฿)</label>
-        <input type="text" class="input-green" value="${fmt(costPerPiece)}" readonly style="font-weight:700;color:var(--primary);">
-        ${mat && m.yield>0 ? `<div class="hint">฿${fmt(mat.price)} ÷ ${m.yield} ชิ้น</div>` : ''}
+        <label>ต้นทุน/ชิ้น (฿) — แก้ไขได้</label>
+        <input type="number" class="input-yellow"
+          value="${m.costOverride!=null ? m.costOverride : fmt(costPerPiece)}"
+          placeholder="${fmt(costPerPiece)}"
+          onchange="updateCostOverride(${m.id}, this.value)">
+        <div class="hint" style="color:${m.costOverride!=null?'var(--accent)':'var(--muted)'}">
+          ${m.costOverride!=null ? 'แก้ไขเอง' : 'อัตโนมัติ'}
+        </div>
       </div>
       <div>
         <label>จำนวนแผ่นที่ใช้</label>
@@ -841,7 +881,7 @@ function renderServices() {
         <b>Nesting คำนวณเสร็จแล้ว</b> — วัสดุ: <b>${matLabel}</b>
         &nbsp;|&nbsp; Yield: <b>${np.bestN > 0 ? np.bestN+' ชุด/แผ่น' : '—'}</b>
         &nbsp;|&nbsp; ค่า${polishName}: <b>฿${fmt(polishCost)}/ชุด</b>
-        <div style="font-size:11px;color:#1565c0;margin-top:2px;">กดปุ่มเพื่อโยงวัสดุ, Yield และค่าขัดผิวมาหน้านี้อัตโนมัติ</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">กดปุ่มเพื่อโยงวัสดุ, Yield และค่าขัดผิวมาหน้านี้อัตโนมัติ</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="applyNestPolish()">✅ ใช้ค่าจาก Nesting</button>
     </div>`;
@@ -877,7 +917,7 @@ function renderServices() {
         <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${s.unit||''}</span>
       </div>
       <div style="${op}">
-        <span style="font-family:monospace;font-weight:700;color:var(--primary);font-size:13px;">฿${fmt(s.enabled?(s.polishType&&s.sides===1?total*0.5:total):0)}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:500;color:var(--accent2);font-size:13px;">฿${fmt(s.enabled?(s.polishType&&s.sides===1?total*0.5:total):0)}</span>
         ${s.qty > 1 && s.enabled ? `<div style="font-size:10px;color:var(--muted);">฿${s.unitPrice}×${s.qty}</div>` : ''}
         ${s.polishType && s.enabled ? `
         <div style="display:flex;gap:4px;margin-top:4px;">
@@ -966,7 +1006,7 @@ function applyNestPolish() {
 // OTHERS
 // =========================================================
 function addOther(preset) {
-  others.push({ id:++otherIdCounter, name:preset?.name||'รายการอื่นๆ', amount:preset?.amount||0, enabled:false });
+  others.push({ id:++otherIdCounter, name:preset?.name||'รายการอื่นๆ', amount:preset?.amount||0, enabled:preset?.enabled||false });
   renderOthers();
 }
 
@@ -1006,25 +1046,44 @@ function updateOther(id, key, val) {
 }
 
 // =========================================================
+// MATERIAL HELPERS
+// =========================================================
+function updateSheetPrice(id, val) {
+  const m = materials.find(x => x.id === id);
+  if (!m) return;
+  if (m.matId === '__custom__') { m.customPrice = val; }
+  else { m.sheetPriceOverride = val; }
+  renderMaterials(); calculate();
+}
+function updateCostOverride(id, val) {
+  const m = materials.find(x => x.id === id);
+  if (!m) return;
+  m.costOverride = (val === '' || val == null) ? null : +val;
+  renderMaterials(); calculate();
+}
+
+// =========================================================
 // CALCULATE
 // =========================================================
 function calculate() {
   const qty = parseInt(document.getElementById('qty').value)||1;
   const markupPct = parseFloat(document.getElementById('markup').value)||0;
-  const singlePremium = parseFloat(document.getElementById('singlePremium').value)||0;
+  const singleMarkupPct = parseFloat(document.getElementById('singleMarkup').value)||0;
 
   // Material cost
   let matCost = 0;
   let matBreakdown = [];
   materials.forEach(m => {
     const mat = MATERIALS.find(x => x.id === m.matId);
-    const sheetPrice = m.matId==='__custom__' ? (m.customPrice||0) : (mat ? mat.price : 0);
+    const sheetPrice = m.matId==='__custom__' ? (m.customPrice||0) : (m.sheetPriceOverride!=null ? m.sheetPriceOverride : (mat ? mat.price : 0));
     const yld = Math.max(m.yield||1, 0.01);
     const sheets = m.sheets||1;
-    const cost = (sheetPrice / yld) * sheets;
+    const autoCost = (sheetPrice / yld) * sheets;
+    const cost = m.costOverride!=null ? m.costOverride : autoCost;
     matCost += cost;
     const name = mat ? `${mat.type} ${mat.size} ${mat.thick}mm` : (m.matId==='__custom__' ? 'กำหนดเอง' : '(ไม่ได้เลือก)');
-    matBreakdown.push({ name: name + (m.remark?` (${m.remark})`:''), formula:`฿${fmt(sheetPrice)}÷${yld}×${sheets}`, cost });
+    const formula = m.costOverride!=null ? `แก้ไขเอง` : `฿${fmt(sheetPrice)}÷${yld}×${sheets}`;
+    matBreakdown.push({ name: name + (m.remark?` (${m.remark})`:''), formula, cost });
   });
 
   // Service cost
@@ -1058,7 +1117,7 @@ function calculate() {
   const sellPerUnit = costPerUnit * (1 + markupPct/100);
   const totalSell = sellPerUnit * qty;
   const profit = totalSell - totalCost;
-  const singlePrice = sellPerUnit + singlePremium;
+  const singlePrice = costPerUnit * (1 + singleMarkupPct/100);
 
   // Update UI
   document.getElementById('r_markup_pct').textContent = markupPct;
@@ -1089,7 +1148,7 @@ function calculate() {
   window._lastQuote = {
     date: new Date().toLocaleDateString('th-TH'),
     productName, productType, customerName, jobType,
-    qty, markupPct, singlePremium,
+    qty, markupPct, singleMarkupPct,
     matCost, svcCost, otherCost, costPerUnit,
     totalCost, sellPerUnit, totalSell, profit, singlePrice,
     matBreakdown, svcBreakdown, otherBreakdown,
@@ -1172,6 +1231,28 @@ function calculate() {
     <span class="amount">฿${fmt(totalSell)}</span>
   </div>`;
 
+  // ── Customer report card ─────────────────────────────────────────────────
+  var repName = (productName && productName!=='(ไม่ระบุชื่อ)') ? ' — ' + productName : '';
+  var repCust = (customerName && customerName!=='(ไม่ระบุลูกค้า)') ? '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">ลูกค้า: ' + customerName + '</div>' : '';
+  var repSingle = qty > 1 ? '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:11px;color:var(--muted);">ราคาสั่งเดี่ยว (1 ตัว)</span><span style="font-size:13px;color:var(--accent2);">฿' + fmt(singlePrice) + '</span></div>' : '';
+  var repDate = new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  html += '<hr class="divider">';
+  html += '<div style="border:1px solid var(--border);border-radius:2px;padding:16px;margin-top:16px;">';
+  html += '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Report สำหรับลูกค้า — Screenshot ส่งได้เลย</div>';
+  html += '<div id="customerReportCard" style="background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:16px;">';
+  html += '<div style="font-family:Fraunces,serif;font-size:15px;font-weight:300;color:var(--accent);margin-bottom:10px;">MET Furniture' + repName + '</div>';
+  html += repCust;
+  html += '<div style="display:grid;gap:0;">';
+  html += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);font-size:12px;">ค่าวัสดุ</span><span style="font-weight:600;">฿' + fmt(matCost) + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);font-size:12px;">ค่าแรง / ค่าบริการ</span><span style="font-weight:600;">฿' + fmt(svcCost + otherCost) + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:2px solid var(--accent);"><span style="color:var(--muted);font-size:12px;">ค่าดำเนินการ / กำไร</span><span style="font-weight:600;">฿' + fmt(profit) + '</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;padding:10px 0 4px;"><span style="font-weight:600;">ราคารวม (' + qty + ' ตัว)</span><span style="font-family:Fraunces,serif;font-size:20px;font-weight:300;color:var(--accent);">฿' + fmt(totalSell) + '</span></div>';
+  html += repSingle;
+  html += '</div>';
+  html += '<div style="margin-top:10px;font-size:10px;color:var(--muted);">' + repDate + '</div>';
+  html += '</div>';
+  html += '</div>';
+
   if (qty > 1) {
     html += `<div class="breakdown-row" style="font-size:14px;color:var(--primary);">
       <span>ราคาขายต่อชิ้น</span>
@@ -1179,19 +1260,17 @@ function calculate() {
     </div>`;
   }
 
-  if (singlePremium > 0) {
-    html += `<div class="breakdown-row" style="font-size:14px;color:var(--success);">
-      <span>🔖 ราคาสั่งเดี่ยว (บวก ฿${fmt(singlePremium)} premium)</span>
-      <span class="amount">฿${fmt(singlePrice)}</span>
-    </div>`;
-  }
+  html += `<div class="breakdown-row" style="font-size:14px;color:var(--accent2);">
+    <span>🔖 ราคาสั่งเดี่ยว (markup ${singleMarkupPct}%)</span>
+    <span class="amount">฿${fmt(singlePrice)}</span>
+  </div>`;
 
   // Lot calc
   if (qty > 1) {
     html += `<div class="qty-calc" style="margin-top:14px;">
       📦 สั่ง <b>${qty} ชิ้น</b> ราคารวม <b>฿${fmt(totalSell)}</b>
       &nbsp;|&nbsp; ต่อชิ้น <b>฿${fmt(sellPerUnit)}</b>
-      ${singlePremium>0 ? `&nbsp;|&nbsp; ราคาเดี่ยว <b>฿${fmt(singlePrice)}</b>` : ''}
+      '&nbsp;|&nbsp; ราคาเดี่ยว <b>฿' + fmt(singlePrice) + '</b> (' + singleMarkupPct + '%)'
     </div>`;
   }
 
@@ -1598,7 +1677,7 @@ function renderCmpYieldConfig() {
           <span style="font-size:11px;color:var(--muted);">ชิ้น/แผ่น</span>
         </div>
         ${isFromNest ? '<div style="font-size:10px;color:var(--success);margin-top:3px;">📐 จาก Nesting</div>' : ''}
-        ${yld < 1 ? `<div style="font-size:10px;color:#e65100;">ใช้ ${fmt(1/yld,2)} แผ่น/ชิ้น</div>` : ''}
+        ${yld < 1 ? `<div style="font-size:10px;color:var(--accent);">ใช้ ${fmt(1/yld,2)} แผ่น/ชิ้น</div>` : ''}
       </td>
       <td class="td-center">
         <span style="font-family:monospace;font-size:12px;color:var(--primary);">${fmt(areaSqm,4)} ตร.ม.</span>
@@ -1675,8 +1754,8 @@ function renderCompare() {
       <th class="td-num">ค่าตัด/ชิ้น<br><small style="font-weight:400;color:#7986cb;">เลเซอร์</small></th>
       <th class="td-num">ค่าขัด/ชิ้น<br><small style="font-weight:400;color:#7986cb;">ผิว</small></th>
       <th class="td-num">แรงอื่นๆ/ชิ้น</th>
-      <th class="td-num" style="background:#e3f2fd;">ทุนรวม/ชิ้น</th>
-      <th class="td-num" style="background:#fff8e1;">ราคาขาย/ชิ้น<br><small style="font-weight:400;">(Markup ${mkp}%)</small></th>
+      <th class="td-num" style="background:rgba(138,180,224,0.1);">ทุนรวม/ชิ้น</th>
+      <th class="td-num" style="background:rgba(200,169,110,0.1);">ราคาขาย/ชิ้น<br><small style="font-weight:400;">(Markup ${mkp}%)</small></th>
     </tr></thead><tbody>`;
 
   rows.forEach((r, idx) => {
@@ -1721,8 +1800,8 @@ function renderCompare() {
         ${polLabel}
       </td>
       <td class="td-num">฿${fmt(shared)}</td>
-      <td class="td-num" style="background:#e3f2fd;font-weight:700;">฿${fmt(r.total)}</td>
-      <td class="td-num" style="background:#fff8e1;color:var(--accent);font-weight:800;font-size:15px;">
+      <td class="td-num" style="background:rgba(138,180,224,0.1);font-weight:700;">฿${fmt(r.total)}</td>
+      <td class="td-num" style="background:rgba(200,169,110,0.1);color:var(--accent);font-weight:800;font-size:15px;">
         ฿${fmt(r.sell)}
         ${!isBest && rows.length > 1 ? `<div style="font-size:11px;font-weight:400;color:#ef5350;">+฿${fmt(diffFromBest)}</div>` : ''}
       </td>
@@ -1738,7 +1817,7 @@ function renderCompare() {
     const worst = rows[rows.length - 1];
     html += `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;">
-      <div style="background:#e8f5e9;border-radius:8px;padding:14px;">
+      <div style="background:rgba(143,186,159,0.12);border-radius:8px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:4px;">🥇 วัสดุประหยัดที่สุด</div>
         <div style="font-size:15px;font-weight:700;">${best.m.type} ${best.m.size} ${best.m.thick}mm</div>
         <div style="font-size:20px;font-weight:800;color:var(--success);">฿${fmt(best.sell)}/ชิ้น</div>
@@ -1746,15 +1825,15 @@ function renderCompare() {
           วัสดุ ฿${fmt(best.matCost)} · ตัด ฿${fmt(best.cutCost)} · ขัด ฿${fmt(best.polishCost)}
         </div>
       </div>
-      <div style="background:#fce4ec;border-radius:8px;padding:14px;">
-        <div style="font-size:12px;font-weight:700;color:#c62828;margin-bottom:4px;">⚠️ วัสดุแพงที่สุด</div>
+      <div style="background:rgba(196,96,96,0.12);border-radius:8px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px;">⚠️ วัสดุแพงที่สุด</div>
         <div style="font-size:15px;font-weight:700;">${worst.m.type} ${worst.m.size} ${worst.m.thick}mm</div>
-        <div style="font-size:20px;font-weight:800;color:#c62828;">฿${fmt(worst.sell)}/ชิ้น</div>
+        <div style="font-size:20px;font-weight:800;color:var(--danger);">฿${fmt(worst.sell)}/ชิ้น</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
           วัสดุ ฿${fmt(worst.matCost)} · ตัด ฿${fmt(worst.cutCost)} · ขัด ฿${fmt(worst.polishCost)}
         </div>
       </div>
-      <div style="background:#fff3e0;border-radius:8px;padding:14px;">
+      <div style="background:rgba(200,169,110,0.1);border-radius:8px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">📊 ส่วนต่างสูงสุด-ต่ำสุด</div>
         <div style="font-size:12px;color:var(--muted);">ต่อ 1 ชิ้น</div>
         <div style="font-size:20px;font-weight:800;color:var(--accent);">฿${fmt(diff)}</div>
@@ -2196,10 +2275,10 @@ function renderNestStats(bestN, result, sheetArea, usedArea, wastePct, mat, dims
     const totalSheetArea = sheetArea * sheetsNeeded;
     const totalWaste = (totalSheetArea - totalUsed) / totalSheetArea * 100;
     multiSheetBanner = `
-    <div style="background:#fff3e0;border:2px solid #ff9800;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div style="background:rgba(200,169,110,0.1);border:2px solid #ff9800;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <span style="font-size:32px;">📦</span>
       <div>
-        <div style="font-size:16px;font-weight:800;color:#e65100;">โหมด Multi-Sheet: 1 ชุดเฟอร์นิเจอร์ต้องใช้ <span style="font-size:24px;">${sheetsNeeded}</span> แผ่น</div>
+        <div style="font-size:16px;font-weight:800;color:var(--accent);">โหมด Multi-Sheet: 1 ชุดเฟอร์นิเจอร์ต้องใช้ <span style="font-size:24px;">${sheetsNeeded}</span> แผ่น</div>
         <div style="font-size:13px;color:var(--muted);margin-top:3px;">
           ชิ้นงานทั้งหมดไม่สามารถจัดลงแผ่นเดียวได้ — ระบบแจกแจงการตัดออกเป็น ${sheetsNeeded} แผ่น
           &nbsp;|&nbsp; เศษวัสดุรวม ${totalWaste.toFixed(1)}%
@@ -2215,7 +2294,7 @@ function renderNestStats(bestN, result, sheetArea, usedArea, wastePct, mat, dims
         <div class="label">${isMultiSheet ? 'แผ่นที่ต้องใช้' : 'Yield — ตัดได้'}</div>
         <div class="value" style="font-size:32px;color:${isMultiSheet?'#e65100':'inherit'};">${isMultiSheet ? sheetsNeeded : (bestN > 0 ? bestN : '—')}</div>
         <div style="font-size:13px;color:var(--muted);">${isMultiSheet ? 'แผ่น / ชุด' : 'ชุด / แผ่น'}</div>
-        ${!isMultiSheet && bestN === 0 ? '<div style="font-size:12px;color:#e65100;margin-top:4px;">ไม่สามารถใส่ครบ 1 ชุดได้</div>' : ''}
+        ${!isMultiSheet && bestN === 0 ? '<div style="font-size:12px;color:var(--accent);margin-top:4px;">ไม่สามารถใส่ครบ 1 ชุดได้</div>' : ''}
       </div>
       <div class="result-box">
         <div class="label">เศษวัสดุ (Waste)</div>
@@ -2237,13 +2316,13 @@ function renderNestStats(bestN, result, sheetArea, usedArea, wastePct, mat, dims
     </div>`;
 
   if (unplacedCount > 0) {
-    html += `<div style="background:#fce4ec;border-radius:6px;padding:10px 14px;font-size:13px;color:#c62828;margin-bottom:12px;">
+    html += `<div style="background:rgba(196,96,96,0.12);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--danger);margin-bottom:12px;">
       ⚠️ มีชิ้นงาน ${unplacedCount} ชิ้นที่ไม่สามารถจัดเรียงได้ในแผ่นเดียว — แสดงเฉพาะชิ้นที่ใส่ได้
     </div>`;
   }
 
   if (isMultiSheet) {
-    html += `<div class="qty-calc" style="background:#fff3e0;border-color:#ff9800;">
+    html += `<div class="qty-calc" style="background:rgba(200,169,110,0.1);border-color:#ff9800;">
       📦 1 ชุดเฟอร์นิเจอร์ ต้องใช้ <b>${sheetsNeeded} แผ่น</b>
       &nbsp;|&nbsp; ราคาวัสดุต่อชุด = <b>฿${fmt(mat.price * sheetsNeeded)}</b>
       &nbsp;|&nbsp; ดูผัง <b>${sheetsNeeded} แผ่น</b> ด้านล่าง
@@ -2303,9 +2382,9 @@ function renderNestStats(bestN, result, sheetArea, usedArea, wastePct, mat, dims
       </div>`;
 
     if (!cmp.fitsOther) {
-      html += `<div style="font-size:13px;color:#c62828;">⚠️ ชิ้นงานบางชิ้นใหญ่เกิน — ไม่สามารถใช้แผ่นขนาดนี้ได้</div>`;
+      html += `<div style="font-size:13px;color:var(--danger);">⚠️ ชิ้นงานบางชิ้นใหญ่เกิน — ไม่สามารถใช้แผ่นขนาดนี้ได้</div>`;
     } else if (othYield === 0) {
-      html += `<div style="font-size:13px;color:#e65100;">ไม่สามารถจัดเรียงได้แม้แต่ 1 ชุด</div>`;
+      html += `<div style="font-size:13px;color:var(--accent);">ไม่สามารถจัดเรียงได้แม้แต่ 1 ชุด</div>`;
     } else {
       html += `<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
         <div>
@@ -2367,7 +2446,7 @@ function renderNestCanvas(sheetsArray, dims, gap, bestN, isMultiSheet, sheetsNee
 
     if (isMultiSheet) {
       const lbl = document.createElement('div');
-      lbl.style.cssText = 'font-weight:700;font-size:13px;color:var(--primary);padding:4px 14px;background:#e3f2fd;border-radius:6px;border:1.5px solid #90caf9;';
+      lbl.style.cssText = 'font-weight:700;font-size:13px;color:var(--primary);padding:4px 14px;background:rgba(138,180,224,0.1);border-radius:6px;border:1.5px solid #90caf9;';
       lbl.textContent = `แผ่นที่ ${sheetIdx + 1} / ${sheetsNeeded}`;
       wrapper.appendChild(lbl);
     }
@@ -2577,7 +2656,7 @@ function renderNestArea(surfData, totalPerSet, bestN, mat, isMultiSheet, sheetsN
 
     if (isMultiSheet) {
       html += `
-        <div class="breakdown-row" style="color:#e65100;background:#fff3e0;border-radius:6px;padding:8px 14px;margin-top:8px;">
+        <div class="breakdown-row" style="color:var(--accent);background:rgba(200,169,110,0.1);border-radius:6px;padding:8px 14px;margin-top:8px;">
           <span>🗂️ Multi-Sheet: 1 ชุด ต้องใช้ ${sheetsNeeded} แผ่น</span>
           <span class="amount">${(totalPerSet / 1e6).toFixed(4)} ตร.ม. / ชุด</span>
         </div>`;
@@ -2594,23 +2673,23 @@ function renderNestArea(surfData, totalPerSet, bestN, mat, isMultiSheet, sheetsN
       <hr class="divider">
       <div class="section-title" style="margin-top:12px;">ประมาณค่าขัด/ทำผิว (ต่อ 1 ชุด)</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
-        <div style="background:#e3f2fd;border-radius:8px;padding:12px;">
+        <div style="background:rgba(138,180,224,0.1);border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:#1565c0;margin-bottom:4px;">ขัดแฮร์ไลน์ Stainless (฿${POLISH_RATE.Stainless}/ตร.ม.)</div>
           <div style="font-size:18px;font-weight:800;color:#1565c0;">฿${fmt(costHairline)}</div>
           <div style="font-size:11px;color:var(--muted);">ต่อ 1 ชุด</div>
         </div>
-        <div style="background:#e8f5e9;border-radius:8px;padding:12px;">
+        <div style="background:rgba(143,186,159,0.12);border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:4px;">ขัดสก็อตไบร์ท Aluminum (฿${POLISH_RATE.Aluminum}/ตร.ม.)</div>
           <div style="font-size:18px;font-weight:800;color:var(--success);">฿${fmt(costScotch)}</div>
           <div style="font-size:11px;color:var(--muted);">ต่อ 1 ชุด</div>
         </div>
-        <div style="background:#fff3e0;border-radius:8px;padding:12px;">
+        <div style="background:rgba(200,169,110,0.1);border-radius:8px;padding:12px;">
           <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">พื้นที่ผิวรวม</div>
           <div style="font-size:18px;font-weight:800;color:var(--accent);">${(totalPerSet/1e6).toFixed(4)} ตร.ม.</div>
           <div style="font-size:11px;color:var(--muted);">2 ด้าน · ต่อ 1 ชุด</div>
         </div>
       </div>
-      <div style="margin-top:16px;background:#e8f5e9;border:1.5px solid #81c784;border-radius:8px;padding:12px 16px;">
+      <div style="margin-top:16px;background:rgba(143,186,159,0.12);border:1.5px solid #81c784;border-radius:8px;padding:12px 16px;">
         <div style="font-size:13px;font-weight:700;color:var(--success);margin-bottom:8px;">✅ พร้อมโยงผลไปหน้าคำนวณราคา</div>
         <div style="font-size:12px;color:var(--text);margin-bottom:10px;display:flex;flex-direction:column;gap:3px;">
           <span>📦 วัสดุ: <b>${mat ? mat.type+' '+mat.size+' '+mat.thick+'mm' : ''}</b></span>
