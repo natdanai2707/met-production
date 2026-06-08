@@ -124,6 +124,9 @@ export default function Home() {
           <Link href="/calculator" style={{ background:'none', border:'1px solid var(--border)', borderRadius:2, color:'var(--muted)', fontFamily:'"DM Mono",monospace', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', padding:'5px 12px', cursor:'pointer', textDecoration:'none', display:'inline-flex', alignItems:'center' }}>
             🧮 Calculator
           </Link>
+          <Link href="/calendar" style={{ background:'none', border:'1px solid var(--border)', borderRadius:2, color:'var(--muted)', fontFamily:'"DM Mono",monospace', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', padding:'5px 12px', cursor:'pointer', textDecoration:'none', display:'inline-flex', alignItems:'center' }}>
+            📅 Calendar
+          </Link>
         </div>
         <button className="btn btn-primary" onClick={openNew}>+ New Order</button>
       </div>
