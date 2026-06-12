@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Order, STAGES } from '@/lib/supabase'
+import DetailModal from '@/app/components/DetailModal'
 
 // Stage colors for the bar
 const STAGE_COLORS: Record<number, string> = {
@@ -45,6 +46,8 @@ const LABEL_W = 220 // px for row label
 export default function CalendarPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [editOrder, setEditOrder] = useState<Order | null>(null)
   const todayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -116,13 +119,14 @@ export default function CalendarPage() {
     return (
       <div key={o.id} style={{ display: 'flex', height: ROW_H, borderBottom: '1px solid var(--border)', background: rowBg }}>
         {/* Label */}
-        <div style={{
+        <div onClick={() => setSelectedOrder(o)}
+          style={{
           width: LABEL_W, minWidth: LABEL_W,
           padding: '0 12px',
           display: 'flex', alignItems: 'center', gap: 8,
           borderRight: '1px solid var(--border)',
           position: 'sticky', left: 0, background: idx % 2 === 0 ? 'var(--bg)' : '#111',
-          zIndex: 2,
+          zIndex: 2, cursor: 'pointer',
         }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: stageColor, flexShrink: 0 }} />
           <div style={{ overflow: 'hidden' }}>
@@ -190,6 +194,12 @@ export default function CalendarPage() {
         </div>
       </div>
     )
+  }
+
+  const handleStageChange = async (id: string, stage: number) => {
+    await supabase.from('orders').update({ stage, updated_at: new Date().toISOString() }).eq('id', id)
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, stage } : o))
+    setSelectedOrder(prev => prev?.id === id ? { ...prev, stage } : prev)
   }
 
   if (loading) return (
@@ -328,6 +338,13 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      <DetailModal
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        onEdit={(o) => { setSelectedOrder(null); setEditOrder(o) }}
+        onStageChange={handleStageChange}
+      />
     </div>
   )
 }

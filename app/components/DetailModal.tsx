@@ -40,6 +40,18 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
 
         <div style={{ overflowY:'auto', padding:24, flex:1 }}>
 
+          {order.image_url && (
+            <div style={{ marginBottom:20, borderRadius:2, overflow:'hidden', border:'1px solid var(--border)', cursor:'pointer', position:'relative' }}
+              onClick={() => window.open(order.image_url!, '_blank')}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={order.image_url} alt={order.product}
+                style={{ width:'100%', maxHeight:260, objectFit:'cover', display:'block' }} />
+              <div style={{ position:'absolute', bottom:8, right:8, background:'rgba(0,0,0,0.5)', borderRadius:2, padding:'3px 8px', fontSize:10, color:'var(--text)', letterSpacing:'0.08em' }}>
+                คลิกเพื่อดูเต็ม
+              </div>
+            </div>
+          )}
+
           {/* Pipeline stepper */}
           <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:2, overflow:'hidden', marginBottom:20 }}>
             {STAGES.map((s, i) => {
@@ -58,11 +70,6 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
               )
             })}
           </div>
-
-          {order.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={order.image_url} alt={order.product} style={{ width:'100%', maxHeight:180, objectFit:'cover', borderRadius:2, border:'1px solid var(--border)', marginBottom:20 }} />
-          )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
             <div><label style={lbl}>ลูกค้า</label><p>{order.customer}</p></div>
