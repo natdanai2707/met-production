@@ -23,6 +23,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [bizDays, setBizDays] = useState<string>('')
 
   useEffect(() => {
     if (open) {
@@ -38,10 +39,33 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
         setImagePreview(null)
       }
       setImageFile(null)
+      setBizDays('')
     }
   }, [open, order])
 
   const set = (k: keyof Order, v: Order[keyof Order]) => setForm(f => ({ ...f, [k]: v }))
+
+  // Add N business days (skip Sat/Sun) to a start date → returns YYYY-MM-DD
+  const addBusinessDays = (startStr: string, days: number): string => {
+    if (!startStr || !days || days < 1) return ''
+    const d = new Date(startStr)
+    let added = 0
+    while (added < days) {
+      d.setDate(d.getDate() + 1)
+      const dow = d.getDay()
+      if (dow !== 0 && dow !== 6) added++
+    }
+    return d.toISOString().split('T')[0]
+  }
+
+  const handleBizDays = (val: string) => {
+    setBizDays(val)
+    const n = parseInt(val)
+    if (form.start_date && n > 0) {
+      set('due_date', addBusinessDays(form.start_date, n))
+    }
+  }
+
 
   const paid = (form.total_price || 0) > 0
     ? Math.round(((form.deposit || 0) / (form.total_price || 1)) * 100)
@@ -127,8 +151,18 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
             <div><label style={lbl}>ขนาด (กว้าง × ลึก × สูง)</label><input style={inp} value={form.size||''} onChange={e=>set('size',e.target.value)} placeholder="เช่น 40×40×75 cm" /></div>
             <div><label style={lbl}>จำนวน</label><input style={inp} type="number" min={1} value={form.qty||1} onChange={e=>set('qty',parseInt(e.target.value)||1)} /></div>
 
-            <div><label style={lbl}>วันเริ่มสั่ง</label><input style={inp} type="date" value={form.start_date||''} onChange={e=>set('start_date',e.target.value)} /></div>
-            <div><label style={lbl}>กำหนดส่ง</label><input style={inp} type="date" value={form.due_date||''} onChange={e=>set('due_date',e.target.value)} /></div>
+            <div><label style={lbl}>วันเริ่มสั่ง / มัดจำ</label><input style={inp} type="date" value={form.start_date||''} onChange={e=>{
+              const v = e.target.value
+              setForm(f => ({ ...f, start_date: v }))
+              const n = parseInt(bizDays)
+              if (v && n > 0) setForm(f => ({ ...f, start_date: v, due_date: addBusinessDays(v, n) }))
+            }} /></div>
+            <div><label style={lbl}>ส่งภายใน (วันทำการ)</label><input style={inp} type="number" min={1} value={bizDays} onChange={e=>handleBizDays(e.target.value)} placeholder="เช่น 7" /></div>
+
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={lbl}>กำหนดส่ง {bizDays && form.start_date ? '(คำนวณอัตโนมัติ ไม่นับ ส-อา)' : ''}</label>
+              <input style={inp} type="date" value={form.due_date||''} onChange={e=>{ set('due_date',e.target.value); setBizDays('') }} />
+            </div>
 
             <div style={{ gridColumn:'1/-1' }}>
               <label style={lbl}>สถานที่จัดส่ง</label>

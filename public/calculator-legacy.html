@@ -736,10 +736,10 @@ window.onload = function() {
   renderDatabase();
   addMaterial();
   initServices();
-  addOther({name:'ค่า Packaging', amount:150, enabled:true});
-  addOther({name:'สกรู/อุปกรณ์ยึด', amount:40, enabled:false});
-  addOther({name:'อุปกรณ์จิปาถะ', amount:100, enabled:false});
-  addOther({name:'เบาะ/ผ้า', amount:0, enabled:false});
+  addOther({name:'ค่า Packaging', amount:150, itemQty:1, enabled:true});
+  addOther({name:'สกรู/อุปกรณ์ยึด', amount:10, itemQty:4, enabled:false});
+  addOther({name:'อุปกรณ์จิปาถะ', amount:100, itemQty:1, enabled:false});
+  addOther({name:'เบาะ/ผ้า', amount:0, itemQty:1, enabled:false});
   renderCompareSelect();
   renderCompare();
   calculate();
@@ -1006,7 +1006,7 @@ function applyNestPolish() {
 // OTHERS
 // =========================================================
 function addOther(preset) {
-  others.push({ id:++otherIdCounter, name:preset?.name||'รายการอื่นๆ', amount:preset?.amount||0, enabled:preset?.enabled||false });
+  others.push({ id:++otherIdCounter, name:preset?.name||'รายการอื่นๆ', amount:preset?.amount||0, itemQty:preset?.itemQty||1, enabled:preset?.enabled||false });
   renderOthers();
 }
 
@@ -1019,21 +1019,23 @@ function removeOther(id) {
 function renderOthers() {
   const container = document.getElementById('otherList');
   container.innerHTML = `
-    <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr auto;gap:10px;font-size:12px;font-weight:700;color:var(--muted);padding:0 0 6px;">
-      <span>รายการ</span><span>จำนวน (฿/ชิ้น)</span><span>รวม (×จำนวน)</span><span></span>
+    <div style="display:grid;grid-template-columns:2fr 1.1fr 0.7fr 1fr auto;gap:10px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0 0 6px;">
+      <span>รายการ</span><span>ราคา/หน่วย (฿)</span><span>จำนวน</span><span>รวม/ชุด</span><span></span>
     </div>
   `;
-  const qty = parseInt(document.getElementById('qty')?.value||1)||1;
   others.forEach(o => {
+    const iq = o.itemQty || 1;
     const div = document.createElement('div');
     div.className = 'service-item';
+    div.style.gridTemplateColumns = '2fr 1.1fr 0.7fr 1fr auto';
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="checkbox" ${o.enabled?'checked':''} onchange="updateOther(${o.id},'enabled',this.checked)" style="width:auto;">
         <input type="text" value="${o.name}" onchange="updateOther(${o.id},'name',this.value)" style="${o.enabled?'':'opacity:0.4'}">
       </div>
       <input type="number" class="input-yellow" value="${o.amount}" min="0" onchange="updateOther(${o.id},'amount',+this.value)" style="${o.enabled?'':'opacity:0.4'}">
-      <span style="font-family:monospace;color:var(--primary);font-weight:600;">฿${fmt(o.enabled?o.amount*qty:0)}</span>
+      <input type="number" class="input-yellow" value="${iq}" min="1" onchange="updateOther(${o.id},'itemQty',+this.value)" style="${o.enabled?'':'opacity:0.4'}">
+      <span style="font-family:'DM Mono',monospace;color:var(--accent2);font-weight:500;">฿${fmt(o.enabled?o.amount*iq:0)}</span>
       <button class="btn btn-danger btn-xs no-print" onclick="removeOther(${o.id})">✕</button>
     `;
     container.appendChild(div);
@@ -1107,8 +1109,10 @@ function calculate() {
   let otherBreakdown = [];
   others.forEach(o => {
     if (o.enabled) {
-      otherCost += o.amount;
-      if (o.amount > 0) otherBreakdown.push({ name: o.name, cost: o.amount });
+      const iq = o.itemQty || 1;
+      const lineCost = o.amount * iq;
+      otherCost += lineCost;
+      if (lineCost > 0) otherBreakdown.push({ name: o.name + (iq > 1 ? ` ×${iq}` : ''), cost: lineCost });
     }
   });
 
