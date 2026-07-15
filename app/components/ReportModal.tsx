@@ -64,7 +64,7 @@ export default function ReportModal({ open, onClose, orders }: Props) {
         {/* Header */}
         <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--surface)' }}>
           <div style={{ fontFamily:'Fraunces,serif', fontSize:18, fontWeight:300 }}>
-            Report <span style={{ fontStyle:'italic', color:'var(--muted)', fontSize:14 }}>— ภาพรวม</span>
+            Report <span style={{ fontStyle:'italic', color:'var(--muted)', fontSize:14 }}>· ภาพรวม</span>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer' }}>×</button>
         </div>
