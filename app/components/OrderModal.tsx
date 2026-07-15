@@ -1,6 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Order, Material, Equipment, STAGES, CHANNELS, MAT_OPTIONS, UNIT_OPTIONS } from '@/lib/supabase'
+import { addBusinessDays } from '@/lib/utils'
+import {
+  modalOverlay, modalCard, modalHeader, modalTitle, modalBody, modalFooter,
+  closeBtn, input, inputSm, label,
+} from '@/lib/styles'
+import { useToast } from './Toast'
 
 type Props = {
   open: boolean
@@ -24,6 +30,8 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [bizDays, setBizDays] = useState<string>('')
+  const [errors, setErrors] = useState<{ customer?: boolean; product?: boolean }>({})
+  const toast = useToast()
 
   useEffect(() => {
     if (open) {
@@ -40,23 +48,11 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
       }
       setImageFile(null)
       setBizDays('')
+      setErrors({})
     }
   }, [open, order])
 
   const set = (k: keyof Order, v: Order[keyof Order]) => setForm(f => ({ ...f, [k]: v }))
-
-  // Add N business days (skip Sat/Sun) to a start date → returns YYYY-MM-DD
-  const addBusinessDays = (startStr: string, days: number): string => {
-    if (!startStr || !days || days < 1) return ''
-    const d = new Date(startStr)
-    let added = 0
-    while (added < days) {
-      d.setDate(d.getDate() + 1)
-      const dow = d.getDay()
-      if (dow !== 0 && dow !== 6) added++
-    }
-    return d.toISOString().split('T')[0]
-  }
 
   const handleBizDays = (val: string) => {
     setBizDays(val)
@@ -108,15 +104,22 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
     setEquipment(e => e.map((item, idx) => idx === i ? { ...item, [k]: v } : item))
 
   const handleSave = async () => {
-    if (!form.customer || !form.product) { alert('กรุณากรอกชื่อลูกค้าและชื่อสินค้า'); return }
+    const nextErrors = { customer: !form.customer?.trim(), product: !form.product?.trim() }
+    if (nextErrors.customer || nextErrors.product) {
+      setErrors(nextErrors)
+      toast.error('กรุณากรอกชื่อลูกค้าและชื่อสินค้า')
+      return
+    }
+    setErrors({})
     await onSave({ ...form, materials, equipment }, imageFile)
   }
 
   if (!open) return null
 
-  const inp: React.CSSProperties = { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 2, color: 'var(--text)', fontFamily: '"DM Mono", monospace', fontSize: 13, padding: '9px 12px', outline: 'none', width: '100%' }
-  const inpSm: React.CSSProperties = { ...inp, padding: '7px 10px' }
-  const lbl: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 6 }
+  const inp = input
+  const inpSm = inputSm
+  const lbl = label
+  const errBorder = (bad?: boolean): React.CSSProperties => bad ? { borderColor: 'var(--danger)' } : {}
 
   const listHeader = (cols: string[], grid: string) => (
     <div style={{ display:'grid', gridTemplateColumns: grid, gap:8, padding:'6px 12px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
@@ -125,19 +128,19 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
   )
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}
+    <div style={modalOverlay} className="overlay-in"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, width:720, maxWidth:'95vw', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      <div style={modalCard} className="dialog-in">
 
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--surface)' }}>
-          <div style={{ fontFamily:'Fraunces,serif', fontSize:18, fontWeight:300 }}>{order ? 'Edit Order' : 'New Order'}</div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer' }}>×</button>
+        <div style={modalHeader}>
+          <div style={modalTitle}>{order ? 'Edit Order' : 'New Order'}</div>
+          <button onClick={onClose} style={closeBtn}>×</button>
         </div>
 
-        <div style={{ overflowY:'auto', padding:24, flex:1 }}>
+        <div style={modalBody}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
 
-            <div><label style={lbl}>ชื่อลูกค้า</label><input style={inp} value={form.customer||''} onChange={e=>set('customer',e.target.value)} /></div>
+            <div><label style={lbl}>ชื่อลูกค้า</label><input style={{ ...inp, ...errBorder(errors.customer) }} value={form.customer||''} onChange={e=>{ set('customer',e.target.value); if (errors.customer) setErrors(x=>({ ...x, customer:false })) }} /></div>
             <div><label style={lbl}>Account / Handle</label><input style={inp} value={form.account||''} onChange={e=>set('account',e.target.value)} placeholder="@name หรือ LINE ID" /></div>
 
             <div>
@@ -146,7 +149,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
                 {CHANNELS.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div><label style={lbl}>ชื่อสินค้า</label><input style={inp} value={form.product||''} onChange={e=>set('product',e.target.value)} placeholder="เช่น ZEN Stool, MET Table" /></div>
+            <div><label style={lbl}>ชื่อสินค้า</label><input style={{ ...inp, ...errBorder(errors.product) }} value={form.product||''} onChange={e=>{ set('product',e.target.value); if (errors.product) setErrors(x=>({ ...x, product:false })) }} placeholder="เช่น ZEN Stool, MET Table" /></div>
 
             <div><label style={lbl}>ขนาด (กว้าง × ลึก × สูง)</label><input style={inp} value={form.size||''} onChange={e=>set('size',e.target.value)} placeholder="เช่น 40×40×75 cm" /></div>
             <div><label style={lbl}>จำนวน</label><input style={inp} type="number" min={1} value={form.qty||1} onChange={e=>set('qty',parseInt(e.target.value)||1)} /></div>
@@ -275,7 +278,7 @@ export default function OrderModal({ open, order, onClose, onSave, saving }: Pro
           </div>
         </div>
 
-        <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end', background:'var(--surface)' }}>
+        <div style={modalFooter}>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving...' : 'Save Order'}
