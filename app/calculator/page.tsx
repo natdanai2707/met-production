@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useCallback } from 'react'
 import { navPill } from '@/lib/styles'
+import BuildStamp from '../components/BuildStamp'
 
 export default function CalculatorPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -52,6 +53,7 @@ export default function CalculatorPage() {
         }}>
           Calculator
         </div>
+        <BuildStamp style={{ marginLeft:'auto' }} />
       </div>
 
       {/* Full-height iframe */}

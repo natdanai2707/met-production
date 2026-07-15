@@ -9,6 +9,7 @@ import { toolbarSelect, input as inputStyle, navPill } from '@/lib/styles'
 import { useToast } from './components/Toast'
 import { useConfirm } from './components/ConfirmDialog'
 import { OrderTableSkeleton } from './components/Skeleton'
+import BuildStamp from './components/BuildStamp'
 import Link from 'next/link'
 import StatsBar from './components/StatsBar'
 import OrderTable from './components/OrderTable'
@@ -254,7 +255,10 @@ export default function Home() {
           <Link href="/calculator" style={navPill}>🧮 Calculator</Link>
           <Link href="/calendar" style={navPill}>📅 Calendar</Link>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>+ New Order</button>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          <BuildStamp />
+          <button className="btn btn-primary" onClick={openNew}>+ New Order</button>
+        </div>
       </div>
 
       <StatsBar orders={orders} />
