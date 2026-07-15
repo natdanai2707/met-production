@@ -25,5 +25,15 @@ create policy "calc_price_db access"
   using (true)
   with check (true);
 
--- เปิด realtime ให้ตารางนี้ (ถ้าเพิ่มไว้แล้วจะ error, ข้ามได้)
-alter publication supabase_realtime add table public.calc_price_db;
+-- เปิด realtime ให้ตารางนี้ (เพิ่มเฉพาะเมื่อยังไม่ได้เพิ่ม จึงรันซ้ำได้ไม่ error)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'calc_price_db'
+  ) then
+    alter publication supabase_realtime add table public.calc_price_db;
+  end if;
+end $$;
