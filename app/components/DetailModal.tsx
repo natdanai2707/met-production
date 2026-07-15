@@ -1,5 +1,7 @@
 'use client'
 import { Order, STAGES } from '@/lib/supabase'
+import { EMPTY, formatDate, getDueColor, paidPercent, payColor } from '@/lib/utils'
+import { modalOverlay, modalCard, modalHeader, modalTitle, modalBody, modalFooter, closeBtn } from '@/lib/styles'
 
 type Props = {
   order: Order | null
@@ -8,37 +10,26 @@ type Props = {
   onStageChange: (id: string, stage: number) => Promise<void>
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
-}
-function getDueColor(d: string | null) {
-  if (!d) return 'var(--text)'
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const diff = Math.ceil((new Date(d).getTime() - today.getTime()) / 86400000)
-  return diff < 0 ? 'var(--danger)' : diff <= 7 ? 'var(--accent)' : 'var(--accent2)'
-}
-
 export default function DetailModal({ order, onClose, onEdit, onStageChange }: Props) {
   if (!order) return null
 
-  const paid = order.total_price > 0 ? Math.round((order.deposit / order.total_price) * 100) : 0
-  const payColor = paid >= 100 ? '#8fba9f' : paid >= 50 ? '#c8a96e' : '#c46060'
+  const paid = paidPercent(order)
+  const pc = payColor(paid)
   const remaining = order.total_price - order.deposit
 
   const lbl: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 3 }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}
+    <div style={modalOverlay} className="overlay-in"
       onClick={e => { if(e.target === e.currentTarget) onClose() }}>
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, width:680, maxWidth:'95vw', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      <div style={{ ...modalCard, width:680 }} className="dialog-in">
 
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--surface)' }}>
-          <div style={{ fontFamily:'Fraunces,serif', fontSize:18, fontWeight:300 }}>{order.customer} — {order.product}</div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer' }}>×</button>
+        <div style={modalHeader}>
+          <div style={modalTitle}>{order.customer} · {order.product}</div>
+          <button onClick={onClose} style={closeBtn}>×</button>
         </div>
 
-        <div style={{ overflowY:'auto', padding:24, flex:1 }}>
+        <div style={modalBody}>
 
           {order.image_url && (
             <div style={{ marginBottom:20, borderRadius:2, overflow:'hidden', border:'1px solid var(--border)', cursor:'pointer', position:'relative' }}
@@ -73,17 +64,17 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
             <div><label style={lbl}>ลูกค้า</label><p>{order.customer}</p></div>
-            <div><label style={lbl}>Account</label><p>{order.account || '—'}</p></div>
+            <div><label style={lbl}>Account</label><p>{order.account || EMPTY}</p></div>
             <div><label style={lbl}>ช่องทาง</label><p>{order.channel}</p></div>
             <div><label style={lbl}>สินค้า</label><p>{order.product}</p></div>
-            <div><label style={lbl}>ขนาด</label><p>{order.size || '—'}</p></div>
+            <div><label style={lbl}>ขนาด</label><p>{order.size || EMPTY}</p></div>
             <div><label style={lbl}>จำนวน</label><p>{order.qty}</p></div>
             <div><label style={lbl}>วันเริ่มสั่ง</label><p>{formatDate(order.start_date)}</p></div>
             <div><label style={lbl}>กำหนดส่ง</label><p style={{ color: getDueColor(order.due_date) }}>{formatDate(order.due_date)}</p></div>
 
             <div style={{ gridColumn:'1/-1' }}>
               <label style={lbl}>สถานที่จัดส่ง</label>
-              <p>{order.delivery || '—'}</p>
+              <p>{order.delivery || EMPTY}</p>
             </div>
 
             <div style={{ gridColumn:'1/-1' }}>
@@ -99,13 +90,13 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
                     {order.materials.map((m, i) => (
                       <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
                         <td style={{ padding:'7px 8px', fontSize:12 }}>{m.material}</td>
-                        <td style={{ padding:'7px 8px', fontSize:12 }}>{m.thickness || '—'} mm</td>
+                        <td style={{ padding:'7px 8px', fontSize:12 }}>{m.thickness || EMPTY} mm</td>
                         <td style={{ padding:'7px 8px', fontSize:12 }}>{m.qty}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              ) : <p style={{ color:'var(--muted)' }}>—</p>}
+              ) : <p style={{ color:'var(--muted)' }}>{EMPTY}</p>}
             </div>
 
             <div style={{ gridColumn:'1/-1' }}>
@@ -127,16 +118,16 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
                     ))}
                   </tbody>
                 </table>
-              ) : <p style={{ color:'var(--muted)' }}>—</p>}
+              ) : <p style={{ color:'var(--muted)' }}>{EMPTY}</p>}
             </div>
 
             <div style={{ gridColumn:'1/-1' }}>
               <label style={lbl}>การโอนเงิน</label>
               <div style={{ marginTop:6 }}>
                 {[
-                  { label:'ราคารวม', value: order.total_price ? order.total_price.toLocaleString()+' ฿' : '—', color:'var(--text)' },
-                  { label:'โอนแล้ว', value: order.deposit ? `${order.deposit.toLocaleString()} ฿ (${paid}%)` : '—', color: payColor },
-                  { label:'ค้างชำระ', value: order.total_price ? remaining.toLocaleString()+' ฿' : '—', color:'var(--danger)' },
+                  { label:'ราคารวม', value: order.total_price ? order.total_price.toLocaleString()+' ฿' : EMPTY, color:'var(--text)' },
+                  { label:'โอนแล้ว', value: order.deposit ? `${order.deposit.toLocaleString()} ฿ (${paid}%)` : EMPTY, color: pc },
+                  { label:'ค้างชำระ', value: order.total_price ? remaining.toLocaleString()+' ฿' : EMPTY, color:'var(--danger)' },
                 ].map(row => (
                   <div key={row.label} style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                     <span style={{ color:'var(--muted)' }}>{row.label}</span>
@@ -144,7 +135,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
                   </div>
                 ))}
                 <div style={{ background:'var(--surface2)', borderRadius:2, height:4, marginTop:4 }}>
-                  <div style={{ height:4, borderRadius:2, width:`${Math.min(paid,100)}%`, background:payColor }} />
+                  <div style={{ height:4, borderRadius:2, width:`${Math.min(paid,100)}%`, background:pc }} />
                 </div>
               </div>
             </div>
@@ -158,7 +149,7 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
           </div>
         </div>
 
-        <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end', background:'var(--surface)' }}>
+        <div style={modalFooter}>
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
           <button className="btn btn-primary" onClick={() => { onClose(); onEdit(order) }}>Edit</button>
         </div>

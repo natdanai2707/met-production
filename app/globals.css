@@ -78,3 +78,60 @@ textarea { resize: vertical; min-height: 70px; }
   white-space: nowrap;
 }
 .stage-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes dialogIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.toast-in    { animation: toastIn 0.22s ease-out; }
+.overlay-in  { animation: fadeIn 0.18s ease-out; }
+.dialog-in   { animation: dialogIn 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 0px, var(--border) 200px, var(--surface2) 400px);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-in, .overlay-in, .dialog-in, .skeleton { animation: none; }
+}
+
+/* ── Responsive (mobile, technician on-site) ────────────────────────────── */
+
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+
+  /* Tighten the generous desktop side padding on small screens. */
+  .page-x {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Stats collapse from 5 columns to 2, with row separators instead of
+     vertical dividers. */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .stats-bar > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Report KPI cards go two-up. */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
