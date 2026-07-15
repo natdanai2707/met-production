@@ -143,6 +143,28 @@ export async function compressImage(file: File, maxEdge = 1200, quality = 0.82):
   }
 }
 
+// ── Sorting ──────────────────────────────────────────────────────────────────
+
+export type SortKey = 'created' | 'due' | 'payment'
+export type SortDir = 'asc' | 'desc'
+export type SortState = { key: SortKey; dir: SortDir }
+
+// Sentinel so rows without a due date sort to the far end.
+const FAR_DATE = '9999-12-31'
+
+// Base comparator (ascending) for the sortable order columns.
+export function compareOrders(a: Order, b: Order, key: SortKey): number {
+  switch (key) {
+    case 'due':
+      return (a.due_date || FAR_DATE).localeCompare(b.due_date || FAR_DATE)
+    case 'payment':
+      return paidPercent(a) - paidPercent(b)
+    case 'created':
+    default:
+      return (a.created_at || '').localeCompare(b.created_at || '')
+  }
+}
+
 // ── Async helpers ────────────────────────────────────────────────────────────
 
 // Run an async operation with a few retries on transient failures.

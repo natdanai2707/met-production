@@ -2,7 +2,7 @@
 import { Order, STAGES } from '@/lib/supabase'
 import {
   EMPTY, formatDate, getDueColor, paidPercent, payColor,
-  stageStyle, channelStyle,
+  stageStyle, channelStyle, SortKey, SortState,
 } from '@/lib/utils'
 import { badge, iconBtn } from '@/lib/styles'
 
@@ -12,9 +12,20 @@ type Props = {
   onDelete: (id: string) => void
   onDetail: (o: Order) => void
   onDuplicate: (o: Order) => void
+  sort?: SortState
+  onSort?: (key: SortKey) => void
 }
 
-export default function OrderTable({ orders, onEdit, onDelete, onDetail, onDuplicate }: Props) {
+const HEADERS: { label: string; sortKey?: SortKey }[] = [
+  { label: '#', sortKey: 'created' },
+  { label: 'สินค้า' }, { label: 'ลูกค้า' }, { label: 'Account' }, { label: 'ช่องทาง' },
+  { label: 'ขนาด' }, { label: 'วัสดุ' }, { label: 'จำนวน' }, { label: 'Stage' },
+  { label: 'กำหนดส่ง', sortKey: 'due' },
+  { label: 'การโอน', sortKey: 'payment' },
+  { label: 'สถานที่ส่ง' }, { label: '' },
+]
+
+export default function OrderTable({ orders, onEdit, onDelete, onDetail, onDuplicate, sort, onSort }: Props) {
   if (orders.length === 0) return (
     <div style={{ textAlign: 'center', padding: '80px 32px', color: 'var(--muted)' }}>
       <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>⬜</div>
@@ -27,9 +38,24 @@ export default function OrderTable({ orders, onEdit, onDelete, onDetail, onDupli
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['#','สินค้า','ลูกค้า','Account','ช่องทาง','ขนาด','วัสดุ','จำนวน','Stage','กำหนดส่ง','การโอน','สถานที่ส่ง',''].map((h,i) => (
-              <th key={i} style={{ textAlign:'left', padding:'12px 10px', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--muted)', fontWeight:400, whiteSpace:'nowrap' }}>{h}</th>
-            ))}
+            {HEADERS.map((h, i) => {
+              const sortable = !!(h.sortKey && onSort)
+              const active = sortable && sort?.key === h.sortKey
+              const arrow = active ? (sort!.dir === 'asc' ? ' ↑' : ' ↓') : ''
+              return (
+                <th key={i}
+                  onClick={sortable ? () => onSort!(h.sortKey!) : undefined}
+                  style={{
+                    textAlign: 'left', padding: '12px 10px', fontSize: 10, letterSpacing: '0.15em',
+                    textTransform: 'uppercase', fontWeight: 400, whiteSpace: 'nowrap',
+                    color: active ? 'var(--accent)' : 'var(--muted)',
+                    cursor: sortable ? 'pointer' : 'default',
+                    userSelect: 'none',
+                  }}>
+                  {h.label}{arrow}
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>
