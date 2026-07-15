@@ -20,9 +20,9 @@ export default function DetailModal({ order, onClose, onEdit, onStageChange }: P
   const lbl: React.CSSProperties = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 3 }
 
   return (
-    <div style={modalOverlay}
+    <div style={modalOverlay} className="overlay-in"
       onClick={e => { if(e.target === e.currentTarget) onClose() }}>
-      <div style={{ ...modalCard, width:680 }}>
+      <div style={{ ...modalCard, width:680 }} className="dialog-in">
 
         <div style={modalHeader}>
           <div style={modalTitle}>{order.customer} · {order.product}</div>

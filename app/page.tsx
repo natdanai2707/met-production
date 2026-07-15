@@ -243,7 +243,7 @@ export default function Home() {
   return (
     <div>
       {/* Header */}
-      <div className="app-header" style={{ borderBottom:'1px solid var(--border)', padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, background:'var(--bg)', zIndex:100, gap:12, flexWrap:'wrap' }}>
+      <div className="app-header page-x" style={{ borderBottom:'1px solid var(--border)', padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, background:'var(--bg)', zIndex:100, gap:12, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
           <div style={{ fontFamily:'Fraunces,serif', fontSize:22, fontWeight:300, letterSpacing:'0.08em', color:'var(--accent)' }}>
             MET <span style={{ fontStyle:'italic' }}>Production</span>
@@ -260,7 +260,7 @@ export default function Home() {
       <StatsBar orders={orders} />
 
       {/* Toolbar */}
-      <div style={{ padding:'16px 32px', display:'flex', gap:12, alignItems:'center', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
+      <div className="page-x" style={{ padding:'16px 32px', display:'flex', gap:12, alignItems:'center', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
         <input
           style={{ ...inputStyle, width:240, fontSize:12, padding:'7px 14px' }}
           placeholder="ค้นหาลูกค้า / สินค้า..."

@@ -19,7 +19,7 @@ export default function StatsBar({ orders }: Props) {
   ]
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', borderBottom: '1px solid var(--border)' }}>
+    <div className="stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', borderBottom: '1px solid var(--border)' }}>
       {stats.map((s, i) => (
         <div key={i} style={{ padding: '16px 24px', borderRight: i < 4 ? '1px solid var(--border)' : 'none' }}>
           <div style={{ color: 'var(--muted)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>

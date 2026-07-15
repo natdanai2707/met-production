@@ -1,5 +1,6 @@
 'use client'
 import { Order, STAGES, CHANNELS } from '@/lib/supabase'
+import { modalOverlay, modalCard, modalHeader, modalTitle, modalBody, modalFooter, closeBtn } from '@/lib/styles'
 
 type Props = {
   open: boolean
@@ -57,22 +58,22 @@ export default function ReportModal({ open, onClose, orders }: Props) {
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' }}
+    <div style={{ ...modalOverlay, zIndex:2000 }} className="overlay-in"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, width:760, maxWidth:'95vw', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      <div style={{ ...modalCard, width:760 }} className="dialog-in">
 
         {/* Header */}
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--surface)' }}>
-          <div style={{ fontFamily:'Fraunces,serif', fontSize:18, fontWeight:300 }}>
+        <div style={modalHeader}>
+          <div style={modalTitle}>
             Report <span style={{ fontStyle:'italic', color:'var(--muted)', fontSize:14 }}>· ภาพรวม</span>
           </div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer' }}>×</button>
+          <button onClick={onClose} style={closeBtn}>×</button>
         </div>
 
-        <div style={{ overflowY:'auto', padding:24, flex:1 }}>
+        <div style={modalBody}>
 
           {/* KPI cards */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
+          <div className="kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
             {[
               { label:'คำสั่งซื้อทั้งหมด', value: orders.length + ' รายการ', color:'var(--accent)' },
               { label:'มูลค่ารวม', value: fmt(totalRevenue) + ' ฿', color:'var(--text)' },
@@ -92,7 +93,8 @@ export default function ReportModal({ open, onClose, orders }: Props) {
 
           {/* Monthly breakdown */}
           <div style={sectionTitle}>รายเดือน</div>
-          <div style={{ border:'1px solid var(--border)', borderRadius:2, overflow:'hidden' }}>
+          <div style={{ overflowX:'auto', border:'1px solid var(--border)', borderRadius:2 }}>
+          <div style={{ minWidth:520 }}>
             <div style={{ display:'grid', gridTemplateColumns:'1.4fr 70px 110px 110px 110px 80px', gap:0, background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
               {['เดือน','ออร์เดอร์','มูลค่ารวม','เก็บแล้ว','ค้างรับ','ลูกค้า'].map((h,i) => (
                 <div key={i} style={{ padding:'8px 12px', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted)', borderRight: i<5 ? '1px solid var(--border)' : 'none' }}>{h}</div>
@@ -118,6 +120,7 @@ export default function ReportModal({ open, onClose, orders }: Props) {
                 </div>
               )
             })}
+          </div>
           </div>
 
           {/* 2-col section: channel + stage */}
@@ -210,7 +213,7 @@ export default function ReportModal({ open, onClose, orders }: Props) {
 
         </div>
 
-        <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'flex-end', background:'var(--surface)' }}>
+        <div style={modalFooter}>
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
         </div>
       </div>

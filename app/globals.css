@@ -108,3 +108,30 @@ textarea { resize: vertical; min-height: 70px; }
 @media (prefers-reduced-motion: reduce) {
   .toast-in, .overlay-in, .dialog-in, .skeleton { animation: none; }
 }
+
+/* ── Responsive (mobile, technician on-site) ────────────────────────────── */
+
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+
+  /* Tighten the generous desktop side padding on small screens. */
+  .page-x {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Stats collapse from 5 columns to 2, with row separators instead of
+     vertical dividers. */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .stats-bar > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Report KPI cards go two-up. */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

@@ -34,7 +34,7 @@ export default function OrderTable({ orders, onEdit, onDelete, onDetail, onDupli
   )
 
   return (
-    <div style={{ overflowX: 'auto', padding: '0 32px 32px' }}>
+    <div className="page-x" style={{ overflowX: 'auto', padding: '0 32px 32px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
