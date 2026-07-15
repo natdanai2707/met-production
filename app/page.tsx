@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, Order, CHANNELS, STAGES } from '@/lib/supabase'
 import {
   compressImage, storageExt, withRetry, daysUntil,
-  compareOrders, SortKey, SortState,
+  compareOrders, SortKey, SortState, ordersToCSV, downloadFile,
 } from '@/lib/utils'
 import { toolbarSelect, input as inputStyle, navPill } from '@/lib/styles'
 import { useToast } from './components/Toast'
@@ -15,6 +15,7 @@ import OrderTable from './components/OrderTable'
 import OrderModal from './components/OrderModal'
 import DetailModal from './components/DetailModal'
 import ReportModal from './components/ReportModal'
+import MaterialSummaryModal from './components/MaterialSummaryModal'
 
 type QuickFilter = '' | 'unpaid' | 'overdue'
 
@@ -32,6 +33,7 @@ export default function Home() {
   const [editOrder, setEditOrder] = useState<Order | null>(null)
   const [detailOrder, setDetailOrder] = useState<Order | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
+  const [materialOpen, setMaterialOpen] = useState(false)
 
   const toast = useToast()
   const confirm = useConfirm()
@@ -219,6 +221,13 @@ export default function Home() {
   const openNew = () => { setEditOrder(null); setModalOpen(true) }
   const openEdit = (o: Order) => { setEditOrder(o); setModalOpen(true) }
 
+  const handleExport = () => {
+    if (filtered.length === 0) { toast.info('ไม่มีข้อมูลให้ส่งออก'); return }
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadFile(`met-orders-${stamp}.csv`, ordersToCSV(filtered))
+    toast.success(`ส่งออก ${filtered.length} รายการแล้ว`)
+  }
+
   const quickBtn = (key: QuickFilter, label: string, activeColor: string) => (
     <button
       onClick={() => setQuickFilter(f => (f === key ? '' : key))}
@@ -240,6 +249,8 @@ export default function Home() {
             MET <span style={{ fontStyle:'italic' }}>Production</span>
           </div>
           <button onClick={() => setReportOpen(true)} style={navPill}>↗ Report</button>
+          <button onClick={() => setMaterialOpen(true)} style={navPill}>📦 วัสดุ</button>
+          <button onClick={handleExport} style={navPill}>⬇ Export</button>
           <Link href="/calculator" style={navPill}>🧮 Calculator</Link>
           <Link href="/calendar" style={navPill}>📅 Calendar</Link>
         </div>
@@ -305,6 +316,11 @@ export default function Home() {
       <ReportModal
         open={reportOpen}
         onClose={() => setReportOpen(false)}
+        orders={orders}
+      />
+      <MaterialSummaryModal
+        open={materialOpen}
+        onClose={() => setMaterialOpen(false)}
         orders={orders}
       />
     </div>

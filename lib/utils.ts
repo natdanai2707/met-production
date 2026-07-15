@@ -1,4 +1,4 @@
-import type { Order } from './supabase'
+import { STAGES, type Order } from './supabase'
 
 // Placeholder shown for empty values in tables and detail views.
 // We deliberately avoid the em dash character here.
@@ -163,6 +163,65 @@ export function compareOrders(a: Order, b: Order, key: SortKey): number {
     default:
       return (a.created_at || '').localeCompare(b.created_at || '')
   }
+}
+
+// ── Export + material summary ────────────────────────────────────────────────
+
+// Escape a single CSV cell.
+function csvCell(v: unknown): string {
+  const s = v == null ? '' : String(v)
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+// Build a CSV string from a list of orders.
+export function ordersToCSV(orders: Order[]): string {
+  const headers = [
+    'ลูกค้า', 'Account', 'ช่องทาง', 'สินค้า', 'ขนาด', 'จำนวน', 'Stage',
+    'วันเริ่ม', 'กำหนดส่ง', 'สถานที่ส่ง', 'วัสดุ', 'ราคารวม', 'โอนแล้ว', 'ค้างชำระ', 'หมายเหตุ',
+  ]
+  const rows = orders.map(o => [
+    o.customer, o.account, o.channel, o.product, o.size, o.qty, STAGES[o.stage] ?? o.stage,
+    o.start_date, o.due_date, o.delivery,
+    (o.materials || []).map(m => `${m.material} ${m.thickness}mm x${m.qty}`).join(' / '),
+    o.total_price, o.deposit, (o.total_price || 0) - (o.deposit || 0), o.notes,
+  ].map(csvCell).join(','))
+  return [headers.map(csvCell).join(','), ...rows].join('\r\n')
+}
+
+// Trigger a client-side file download. Prepends a BOM so Excel reads Thai text.
+export function downloadFile(filename: string, content: string, mime = 'text/csv;charset=utf-8') {
+  if (typeof document === 'undefined') return
+  const blob = new Blob(['﻿' + content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export type MaterialSummaryRow = { material: string; thickness: string; totalQty: number; orderCount: number }
+
+// Sum sheet materials across orders that have not started production yet
+// (stage below maxStageExclusive), grouped by material + thickness, so the
+// owner can order everything in one go.
+export function summarizeMaterials(orders: Order[], maxStageExclusive = 2): MaterialSummaryRow[] {
+  const map = new Map<string, { material: string; thickness: string; totalQty: number; orders: Set<string> }>()
+  for (const o of orders) {
+    if (o.stage >= maxStageExclusive) continue
+    for (const m of o.materials || []) {
+      if (!m.material) continue
+      const thickness = m.thickness || ''
+      const key = `${m.material}__${thickness}`
+      const cur = map.get(key) || { material: m.material, thickness, totalQty: 0, orders: new Set<string>() }
+      cur.totalQty += Number(m.qty) || 0
+      cur.orders.add(o.id)
+      map.set(key, cur)
+    }
+  }
+  return Array.from(map.values())
+    .map(v => ({ material: v.material, thickness: v.thickness, totalQty: v.totalQty, orderCount: v.orders.size }))
+    .sort((a, b) => a.material.localeCompare(b.material) || (parseFloat(a.thickness) || 0) - (parseFloat(b.thickness) || 0))
 }
 
 // ── Async helpers ────────────────────────────────────────────────────────────
