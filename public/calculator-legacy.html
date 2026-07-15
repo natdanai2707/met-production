@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>โปรแกรมคำนวณราคาเฟอร์นิเจอร์โลหะ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -759,6 +760,8 @@ function saveDbOverrides() {
   try {
     localStorage.setItem(DB_STORAGE_KEY, JSON.stringify({ materials: MATERIALS, serviceRates: SERVICE_RATES }));
   } catch (e) { /* localStorage เต็ม/ถูกปิด, ข้ามการบันทึก */ }
+  // ถ้าไม่ได้กำลัง apply ค่าจากเครื่องอื่น ให้ push ขึ้น cloud
+  if (!applyingRemoteDb) scheduleCloudPush();
 }
 
 // รีเฟรช dropdown/ตารางทุกที่ที่ใช้ MATERIALS หลังแก้ฐานข้อมูล
@@ -767,6 +770,93 @@ function refreshMaterialConsumers() {
   renderCompareSelect();
   refreshNestSheet();
   calculate();
+}
+
+// =========================================================
+// CLOUD SYNC (Supabase) — sync ฐานข้อมูลราคาข้ามเครื่องแบบ realtime
+// ทำงานเมื่อหน้า Next ส่ง config มาให้ผ่าน postMessage
+// ถ้า offline / ยังไม่ได้สร้างตาราง จะ fallback ใช้ localStorage ตามเดิม
+// =========================================================
+const CLOUD_TABLE = 'calc_price_db';
+const CLOUD_ROW_ID = 'default';
+let sbClient = null;
+let applyingRemoteDb = false;      // กันไม่ให้ push ซ้ำตอนรับค่าจากเครื่องอื่น
+let cloudPushTimer = null;
+const myClientId = (window.crypto && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : 'c' + Date.now() + Math.round(Math.random() * 1e6);
+
+function scheduleCloudPush() {
+  if (!sbClient) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(pushDbToCloud, 700);  // debounce ระหว่างพิมพ์
+}
+
+async function pushDbToCloud() {
+  if (!sbClient) return;
+  try {
+    await sbClient.from(CLOUD_TABLE).upsert({
+      id: CLOUD_ROW_ID,
+      materials: MATERIALS,
+      service_rates: SERVICE_RATES,
+      client_id: myClientId,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) { /* offline หรือ ตารางยังไม่มี, เก็บ local ไว้ก่อน */ }
+}
+
+// นำค่าจาก cloud มาใช้ (ไม่ push กลับ เพื่อกัน echo)
+function applyRemoteDb(row) {
+  if (!row) return;
+  applyingRemoteDb = true;
+  try {
+    if (Array.isArray(row.materials) && row.materials.length) MATERIALS = row.materials;
+    if (Array.isArray(row.service_rates) && row.service_rates.length) SERVICE_RATES = row.service_rates;
+    saveDbOverrides();  // cache ลง localStorage (ไม่ push เพราะ flag)
+    // ถ้าผู้ใช้กำลังพิมพ์ในตารางฐานข้อมูลอยู่ อย่าเพิ่ง re-render (กันโดนแย่ง focus)
+    const ae = document.activeElement;
+    const editing = ae && ae.closest && ae.closest('#page-database');
+    if (!editing) renderDatabase();
+    refreshMaterialConsumers();
+  } finally {
+    applyingRemoteDb = false;
+  }
+}
+
+async function initCloudSync(url, key) {
+  if (sbClient || !window.supabase || !url || !key) return;
+  try {
+    sbClient = window.supabase.createClient(url, key);
+    // โหลดค่าปัจจุบันจาก cloud
+    const { data, error } = await sbClient.from(CLOUD_TABLE).select('*').eq('id', CLOUD_ROW_ID).maybeSingle();
+    if (error) { sbClient = null; return; }  // ตารางยังไม่มี -> อยู่แบบ local
+    if (data) applyRemoteDb(data);
+    else pushDbToCloud();                    // ยังไม่มี row -> seed ด้วยค่าปัจจุบัน
+    // ฟังการเปลี่ยนแปลงจากเครื่องอื่นแบบ realtime
+    sbClient
+      .channel('calc-price-db')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: CLOUD_TABLE, filter: `id=eq.${CLOUD_ROW_ID}` },
+        payload => {
+          const row = payload.new;
+          if (!row || row.client_id === myClientId) return;  // ข้ามการเขียนของเราเอง
+          applyRemoteDb(row);
+        })
+      .subscribe();
+  } catch (e) {
+    sbClient = null;  // สร้าง client ไม่ได้ -> อยู่แบบ local
+  }
+}
+
+// รับ config จากหน้า Next (same-origin) แล้วเริ่ม sync
+window.addEventListener('message', ev => {
+  if (ev.origin !== window.location.origin) return;
+  const d = ev.data;
+  if (d && d.type === 'met-supabase-config' && d.url && d.key) initCloudSync(d.url, d.key);
+});
+// แจ้ง parent ว่าพร้อมรับ config (เผื่อ parent ส่งก่อน iframe โหลดเสร็จ)
+if (window.parent && window.parent !== window) {
+  try { window.parent.postMessage({ type: 'met-calc-ready' }, window.location.origin); } catch (e) {}
 }
 
 // =========================================================
