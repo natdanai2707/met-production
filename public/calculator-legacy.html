@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>โปรแกรมคำนวณราคาเฟอร์นิเจอร์โลหะ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -536,8 +537,20 @@
 
 <!-- ======= PAGE: DATABASE ======= -->
 <div id="page-database" class="page">
+  <div class="card no-print">
+    <div class="card-body" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <span style="font-size:12px;color:var(--muted);flex:1;min-width:220px;">
+        ✏️ แก้ไขตัวเลขได้โดยตรง เพิ่ม/ลบแถวได้ · บันทึกอัตโนมัติในเครื่องนี้
+        <br>ใช้ Export/Import เพื่อย้ายฐานข้อมูลไปอีกเครื่อง
+      </span>
+      <button class="btn btn-outline btn-sm" onclick="exportDb()">⬇ Export</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('dbImportFile').click()">⬆ Import</button>
+      <button class="btn btn-danger btn-sm" onclick="resetDb()">↺ รีเซ็ตค่าเริ่มต้น</button>
+      <input type="file" id="dbImportFile" accept="application/json,.json" style="display:none;" onchange="importDb(event)">
+    </div>
+  </div>
   <div class="card">
-    <div class="card-header"><span class="icon">📋</span> ฐานข้อมูลราคาวัสดุ (จาก Excel)</div>
+    <div class="card-header"><span class="icon">📋</span> ฐานข้อมูลราคาวัสดุ</div>
     <div class="card-body">
       <table>
         <thead>
@@ -548,19 +561,22 @@
             <th>ราคา/แผ่น (฿)</th>
             <th>พื้นที่ 2 ด้าน (ตร.ม.)</th>
             <th>หมายเหตุ</th>
+            <th class="no-print"></th>
           </tr>
         </thead>
         <tbody id="dbTable"></tbody>
       </table>
+      <button class="btn btn-outline btn-sm no-print" style="margin-top:12px;" onclick="addDbMaterial()">➕ เพิ่มวัสดุ</button>
     </div>
   </div>
   <div class="card">
     <div class="card-header"><span class="icon">🔧</span> อัตราค่าบริการอ้างอิง</div>
     <div class="card-body">
       <table>
-        <thead><tr><th>รายการ</th><th>อัตรา</th><th>หน่วย</th></tr></thead>
+        <thead><tr><th>รายการ</th><th>อัตรา</th><th>หน่วย</th><th class="no-print"></th></tr></thead>
         <tbody id="serviceDbTable"></tbody>
       </table>
+      <button class="btn btn-outline btn-sm no-print" style="margin-top:12px;" onclick="addDbService()">➕ เพิ่มรายการ</button>
     </div>
   </div>
 </div>
@@ -655,7 +671,7 @@
 // area = พื้นที่ผิว 2 ด้าน (ตร.ม.) ของแผ่นวัดขนาด 4×8' หรือ 5×10'
 const SHEET_AREA_SQM = { "4×8'": 5.9536, "5×10'": 9.3025 };
 
-const MATERIALS = [
+const DEFAULT_MATERIALS = [
   // ── Stainless Steel ──────────────────────────────────────
   { id:'ss_4x8_1.5_hl', type:'Stainless', finish:'Hairline', size:"4×8'",  thick:1.5, price:4700,  note:'Hairline' },
   { id:'ss_4x8_2_hl',   type:'Stainless', finish:'Hairline', size:"4×8'",  thick:2,   price:5930,  note:'Hairline' },
@@ -707,7 +723,7 @@ const CUT_FACTOR  = { Stainless: 1.0, Aluminum: 1.5, Steel: 1.0 };
 const CUT_THICK_UP   = 1.2; // หนาขึ้น 1 mm → ×120%
 const CUT_THICK_DOWN = 0.8; // บางลง 1 mm  → ×80%
 
-const SERVICE_RATES = [
+const DEFAULT_SERVICE_RATES = [
   { name:'ค่าขัดแฮร์ไลน์ (Stainless)', rate:400, unit:'฿/ตร.ม.' },
   { name:'ค่าขัดสก็อตไบร์ท (Aluminum)', rate:300, unit:'฿/ตร.ม.' },
   { name:'ค่าตัดเลเซอร์ Stainless อ้างอิง', rate:300, unit:'฿/ชิ้น (1.5mm)' },
@@ -718,6 +734,130 @@ const SERVICE_RATES = [
   { name:'พื้นที่แผ่น 5×10\'', rate:9.3025, unit:'ตร.ม. (2 ด้าน)' },
   { name:'พื้นที่แผ่น 4×8\'', rate:5.9536, unit:'ตร.ม. (2 ด้าน)' },
 ];
+
+// ── ฐานข้อมูลที่แก้ไขได้ (เก็บใน localStorage เครื่องนี้) ─────────
+// MATERIALS และ SERVICE_RATES เริ่มจากค่า default แล้วทับด้วยค่าที่ผู้ใช้บันทึกไว้
+const DB_STORAGE_KEY = 'met_calc_db_v1';
+const SHEET_SIZES = Object.keys(SHEET_AREA_SQM);   // ขนาดแผ่นที่รองรับ
+const MAT_TYPES = ['Stainless', 'Aluminum', 'Steel']; // ชนิดที่มีสูตรค่าตัด/ขัด
+let MATERIALS = DEFAULT_MATERIALS.map(m => ({ ...m }));
+let SERVICE_RATES = DEFAULT_SERVICE_RATES.map(r => ({ ...r }));
+let dbMatCounter = 0;
+
+function loadDbOverrides() {
+  MATERIALS = DEFAULT_MATERIALS.map(m => ({ ...m }));
+  SERVICE_RATES = DEFAULT_SERVICE_RATES.map(r => ({ ...r }));
+  try {
+    const raw = localStorage.getItem(DB_STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (Array.isArray(saved.materials) && saved.materials.length) MATERIALS = saved.materials;
+    if (Array.isArray(saved.serviceRates) && saved.serviceRates.length) SERVICE_RATES = saved.serviceRates;
+  } catch (e) { /* storage เสีย, ใช้ค่า default */ }
+}
+
+function saveDbOverrides() {
+  try {
+    localStorage.setItem(DB_STORAGE_KEY, JSON.stringify({ materials: MATERIALS, serviceRates: SERVICE_RATES }));
+  } catch (e) { /* localStorage เต็ม/ถูกปิด, ข้ามการบันทึก */ }
+  // ถ้าไม่ได้กำลัง apply ค่าจากเครื่องอื่น ให้ push ขึ้น cloud
+  if (!applyingRemoteDb) scheduleCloudPush();
+}
+
+// รีเฟรช dropdown/ตารางทุกที่ที่ใช้ MATERIALS หลังแก้ฐานข้อมูล
+function refreshMaterialConsumers() {
+  renderMaterials();
+  renderCompareSelect();
+  refreshNestSheet();
+  calculate();
+}
+
+// =========================================================
+// CLOUD SYNC (Supabase) — sync ฐานข้อมูลราคาข้ามเครื่องแบบ realtime
+// ทำงานเมื่อหน้า Next ส่ง config มาให้ผ่าน postMessage
+// ถ้า offline / ยังไม่ได้สร้างตาราง จะ fallback ใช้ localStorage ตามเดิม
+// =========================================================
+const CLOUD_TABLE = 'calc_price_db';
+const CLOUD_ROW_ID = 'default';
+let sbClient = null;
+let applyingRemoteDb = false;      // กันไม่ให้ push ซ้ำตอนรับค่าจากเครื่องอื่น
+let cloudPushTimer = null;
+const myClientId = (window.crypto && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : 'c' + Date.now() + Math.round(Math.random() * 1e6);
+
+function scheduleCloudPush() {
+  if (!sbClient) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(pushDbToCloud, 700);  // debounce ระหว่างพิมพ์
+}
+
+async function pushDbToCloud() {
+  if (!sbClient) return;
+  try {
+    await sbClient.from(CLOUD_TABLE).upsert({
+      id: CLOUD_ROW_ID,
+      materials: MATERIALS,
+      service_rates: SERVICE_RATES,
+      client_id: myClientId,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) { /* offline หรือ ตารางยังไม่มี, เก็บ local ไว้ก่อน */ }
+}
+
+// นำค่าจาก cloud มาใช้ (ไม่ push กลับ เพื่อกัน echo)
+function applyRemoteDb(row) {
+  if (!row) return;
+  applyingRemoteDb = true;
+  try {
+    if (Array.isArray(row.materials) && row.materials.length) MATERIALS = row.materials;
+    if (Array.isArray(row.service_rates) && row.service_rates.length) SERVICE_RATES = row.service_rates;
+    saveDbOverrides();  // cache ลง localStorage (ไม่ push เพราะ flag)
+    // ถ้าผู้ใช้กำลังพิมพ์ในตารางฐานข้อมูลอยู่ อย่าเพิ่ง re-render (กันโดนแย่ง focus)
+    const ae = document.activeElement;
+    const editing = ae && ae.closest && ae.closest('#page-database');
+    if (!editing) renderDatabase();
+    refreshMaterialConsumers();
+  } finally {
+    applyingRemoteDb = false;
+  }
+}
+
+async function initCloudSync(url, key) {
+  if (sbClient || !window.supabase || !url || !key) return;
+  try {
+    sbClient = window.supabase.createClient(url, key);
+    // โหลดค่าปัจจุบันจาก cloud
+    const { data, error } = await sbClient.from(CLOUD_TABLE).select('*').eq('id', CLOUD_ROW_ID).maybeSingle();
+    if (error) { sbClient = null; return; }  // ตารางยังไม่มี -> อยู่แบบ local
+    if (data) applyRemoteDb(data);
+    else pushDbToCloud();                    // ยังไม่มี row -> seed ด้วยค่าปัจจุบัน
+    // ฟังการเปลี่ยนแปลงจากเครื่องอื่นแบบ realtime
+    sbClient
+      .channel('calc-price-db')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: CLOUD_TABLE, filter: `id=eq.${CLOUD_ROW_ID}` },
+        payload => {
+          const row = payload.new;
+          if (!row || row.client_id === myClientId) return;  // ข้ามการเขียนของเราเอง
+          applyRemoteDb(row);
+        })
+      .subscribe();
+  } catch (e) {
+    sbClient = null;  // สร้าง client ไม่ได้ -> อยู่แบบ local
+  }
+}
+
+// รับ config จากหน้า Next (same-origin) แล้วเริ่ม sync
+window.addEventListener('message', ev => {
+  if (ev.origin !== window.location.origin) return;
+  const d = ev.data;
+  if (d && d.type === 'met-supabase-config' && d.url && d.key) initCloudSync(d.url, d.key);
+});
+// แจ้ง parent ว่าพร้อมรับ config (เผื่อ parent ส่งก่อน iframe โหลดเสร็จ)
+if (window.parent && window.parent !== window) {
+  try { window.parent.postMessage({ type: 'met-calc-ready' }, window.location.origin); } catch (e) {}
+}
 
 // =========================================================
 // STATE
@@ -733,6 +873,7 @@ let otherIdCounter = 0;
 // INIT
 // =========================================================
 window.onload = function() {
+  loadDbOverrides();
   renderDatabase();
   addMaterial();
   initServices();
@@ -1854,27 +1995,136 @@ function renderCompare() {
 // =========================================================
 // DATABASE PAGE
 // =========================================================
+// escape ค่าที่ใส่ใน attribute ของ input (กัน quote/ตัวอักษรพิเศษทำ markup พัง)
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function renderDatabase() {
+  const cellInput = 'width:100%;padding:5px 8px;font-size:13px;';
   const tbody = document.getElementById('dbTable');
+  tbody.innerHTML = '';
   MATERIALS.forEach(m => {
+    const area = SHEET_AREA_SQM[m.size] != null ? fmt(SHEET_AREA_SQM[m.size], 4) : '-';
+    const typeOpts = MAT_TYPES.map(t => `<option ${t === m.type ? 'selected' : ''}>${t}</option>`).join('');
+    const sizeOpts = SHEET_SIZES.map(s => `<option ${s === m.size ? 'selected' : ''}>${s}</option>`).join('');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><b>${m.type}</b></td>
-      <td>${m.size}</td>
-      <td class="td-center">${m.thick}</td>
-      <td class="td-num"><b>฿${m.price.toLocaleString()}</b></td>
-      <td class="td-num">${fmt(SHEET_AREA_SQM[m.size], 4)}</td>
-      <td><small style="color:var(--muted);">${m.note}</small></td>
+      <td><select style="${cellInput}" onchange="updateDbMaterial('${m.id}','type',this.value)">${typeOpts}</select></td>
+      <td><select style="${cellInput}" onchange="updateDbMaterial('${m.id}','size',this.value)">${sizeOpts}</select></td>
+      <td><input type="number" step="0.1" min="0" style="${cellInput}text-align:center;" value="${escAttr(m.thick)}" onchange="updateDbMaterial('${m.id}','thick',this.value)"></td>
+      <td><input type="number" step="1" min="0" style="${cellInput}text-align:right;" value="${escAttr(m.price)}" onchange="updateDbMaterial('${m.id}','price',this.value)"></td>
+      <td class="td-num">${area}</td>
+      <td><input type="text" style="${cellInput}" value="${escAttr(m.note)}" onchange="updateDbMaterial('${m.id}','note',this.value)"></td>
+      <td class="no-print"><button class="btn btn-danger btn-xs" title="ลบ" onclick="deleteDbMaterial('${m.id}')">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
 
   const sb = document.getElementById('serviceDbTable');
-  SERVICE_RATES.forEach(r => {
+  sb.innerHTML = '';
+  SERVICE_RATES.forEach((r, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r.name}</td><td class="td-num"><b>${r.rate.toLocaleString()}</b></td><td>${r.unit}</td>`;
+    tr.innerHTML = `
+      <td><input type="text" style="${cellInput}" value="${escAttr(r.name)}" onchange="updateDbService(${i},'name',this.value)"></td>
+      <td><input type="number" step="0.0001" min="0" style="${cellInput}text-align:right;" value="${escAttr(r.rate)}" onchange="updateDbService(${i},'rate',this.value)"></td>
+      <td><input type="text" style="${cellInput}" value="${escAttr(r.unit)}" onchange="updateDbService(${i},'unit',this.value)"></td>
+      <td class="no-print"><button class="btn btn-danger btn-xs" title="ลบ" onclick="deleteDbService(${i})">✕</button></td>
+    `;
     sb.appendChild(tr);
   });
+}
+
+// ── แก้ไข / เพิ่ม / ลบ วัสดุในฐานข้อมูล ───────────────────────────
+function updateDbMaterial(id, key, val) {
+  const m = MATERIALS.find(x => x.id === id);
+  if (!m) return;
+  if (key === 'thick' || key === 'price') {
+    m[key] = parseFloat(val) || 0;
+  } else {
+    m[key] = val;
+  }
+  saveDbOverrides();
+  renderDatabase();          // อัปเดตพื้นที่/ค่าที่ derived
+  refreshMaterialConsumers();
+}
+
+function addDbMaterial() {
+  const id = `custom_${Date.now()}_${++dbMatCounter}`;
+  MATERIALS.push({ id, type: 'Stainless', size: SHEET_SIZES[0], thick: 1.5, price: 0, note: '' });
+  saveDbOverrides();
+  renderDatabase();
+  refreshMaterialConsumers();
+}
+
+function deleteDbMaterial(id) {
+  if (!confirm('ลบวัสดุนี้ออกจากฐานข้อมูล?')) return;
+  MATERIALS = MATERIALS.filter(x => x.id !== id);
+  saveDbOverrides();
+  renderDatabase();
+  refreshMaterialConsumers();
+}
+
+// ── แก้ไข / เพิ่ม / ลบ อัตราค่าบริการอ้างอิง ──────────────────────
+function updateDbService(i, key, val) {
+  if (!SERVICE_RATES[i]) return;
+  SERVICE_RATES[i][key] = key === 'rate' ? (parseFloat(val) || 0) : val;
+  saveDbOverrides();
+}
+
+function addDbService() {
+  SERVICE_RATES.push({ name: 'รายการใหม่', rate: 0, unit: '' });
+  saveDbOverrides();
+  renderDatabase();
+}
+
+function deleteDbService(i) {
+  if (!confirm('ลบรายการนี้?')) return;
+  SERVICE_RATES.splice(i, 1);
+  saveDbOverrides();
+  renderDatabase();
+}
+
+// ── รีเซ็ต / Export / Import ──────────────────────────────────────
+function resetDb() {
+  if (!confirm('รีเซ็ตฐานข้อมูลกลับเป็นค่าเริ่มต้นทั้งหมด? ค่าที่แก้ไว้จะหายไป')) return;
+  MATERIALS = DEFAULT_MATERIALS.map(m => ({ ...m }));
+  SERVICE_RATES = DEFAULT_SERVICE_RATES.map(r => ({ ...r }));
+  saveDbOverrides();
+  renderDatabase();
+  refreshMaterialConsumers();
+}
+
+function exportDb() {
+  const data = JSON.stringify({ materials: MATERIALS, serviceRates: SERVICE_RATES }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'met-price-database.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importDb(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const saved = JSON.parse(e.target.result);
+      if (Array.isArray(saved.materials)) MATERIALS = saved.materials;
+      if (Array.isArray(saved.serviceRates)) SERVICE_RATES = saved.serviceRates;
+      saveDbOverrides();
+      renderDatabase();
+      refreshMaterialConsumers();
+      alert('นำเข้าฐานข้อมูลสำเร็จ');
+    } catch (err) {
+      alert('ไฟล์ไม่ถูกต้อง อ่านไม่ได้');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';  // เผื่อ import ไฟล์เดิมซ้ำ
 }
 
 // =========================================================
@@ -1895,14 +2145,18 @@ const PIECE_COLORS = [
 let nestPieces = [];
 let nestPieceId = 0;
 
-function initNesting() {
+// สร้าง/รีเฟรช option ของ dropdown แผ่นวัสดุในหน้า Nesting โดยคงค่าที่เลือกไว้
+function refreshNestSheet() {
   const sel = document.getElementById('nest_sheet');
-  MATERIALS.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.type} ${m.size} ${m.thick}mm${m.note?' ('+m.note+')':''} — ฿${m.price.toLocaleString()}`;
-    sel.appendChild(opt);
-  });
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- เลือกวัสดุ --</option>' +
+    MATERIALS.map(m => `<option value="${m.id}">${m.type} ${m.size} ${m.thick}mm${m.note?' ('+m.note+')':''} — ฿${m.price.toLocaleString()}</option>`).join('');
+  if (MATERIALS.some(m => m.id === cur)) sel.value = cur;
+}
+
+function initNesting() {
+  refreshNestSheet();
   // Default example pieces
   addNestPiece({ name:'Top panel', w:500, h:500, qty:1 });
   addNestPiece({ name:'Side panel', w:300, h:400, qty:2 });

@@ -5,6 +5,7 @@ import { supabase, Order, STAGES } from '@/lib/supabase'
 import { stageColor, paidPercent, payColor, formatDayMonth } from '@/lib/utils'
 import { navPill } from '@/lib/styles'
 import { CalendarSkeleton } from '@/app/components/Skeleton'
+import BuildStamp from '@/app/components/BuildStamp'
 import DetailModal from '@/app/components/DetailModal'
 
 function parseDate(d: string | null): Date | null {
@@ -258,6 +259,7 @@ export default function CalendarPage() {
             <div style={{ width: 20, height: 3, background: 'var(--danger)' }} />
             เลยกำหนด
           </div>
+          <BuildStamp />
         </div>
       </div>
 
