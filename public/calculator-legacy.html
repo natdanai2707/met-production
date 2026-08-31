@@ -2382,12 +2382,94 @@ function packMultiSheet(allPieces, sheetW, sheetH, gap, allowRotate) {
   let safety = 0;
   while (remaining.length > 0 && safety < 50) {
     safety++;
-    const res = guillotinePack(remaining, sheetW, sheetH, gap, allowRotate);
+    const res = maxRectsPack(remaining, sheetW, sheetH, gap, allowRotate);
     if (res.placed.length === 0) break;
     sheets.push(res.placed);
     remaining = res.unplaced;
   }
   return sheets; // array of placed[] — one per sheet
+}
+
+// ── Maximal Rectangles bin packing (Best Short Side Fit + rotation) ─────────
+// จัดเรียงได้แน่นกว่า guillotine มาก โดยเฉพาะกรณีชิ้นงานกว้างเกินครึ่งแผ่น
+// เพราะมันเก็บ "แถบว่างด้านข้าง" ที่สูงเต็มแผ่นไว้ แล้วหมุนชิ้นงานลงไปเติมได้
+// ลบ free-rect ที่ซ้อนอยู่ในอันอื่นออก (และอันที่กว้าง/สูงเป็น 0)
+function pruneFreeRects(rects) {
+  const r = rects.filter(a => a.w > 0 && a.h > 0);
+  const keep = [];
+  for (let i = 0; i < r.length; i++) {
+    let contained = false;
+    for (let j = 0; j < r.length; j++) {
+      if (i === j) continue;
+      const a = r[i], b = r[j];
+      if (a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h) {
+        // ถ้าเท่ากันเป๊ะ เก็บอันที่ index น้อยกว่าไว้ (กันตัดทิ้งทั้งคู่)
+        if (a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h) { if (j < i) { contained = true; break; } }
+        else { contained = true; break; }
+      }
+    }
+    if (!contained) keep.push(r[i]);
+  }
+  return keep;
+}
+
+function maxRectsPack(items, sheetW, sheetH, gap, allowRotate) {
+  const placed = [], unplaced = [];
+  // เรียงชิ้นใหญ่ก่อน (พื้นที่มากสุด แล้วด้านยาวสุด) เพื่อให้ชิ้นใหญ่จองที่ก่อน
+  const sorted = [...items].sort((a, b) => {
+    const arA = a.w * a.h, arB = b.w * b.h;
+    if (arB !== arA) return arB - arA;
+    const mA = Math.max(a.w, a.h), mB = Math.max(b.w, b.h);
+    if (mB !== mA) return mB - mA;
+    return a.id < b.id ? -1 : 1;
+  });
+
+  let free = [{ x: gap, y: gap, w: sheetW - 2 * gap, h: sheetH - 2 * gap }];
+
+  for (const item of sorted) {
+    const oris = [{ w: item.w, h: item.h, rot: false }];
+    if (allowRotate && item.shape !== 'circle' && item.w !== item.h) oris.push({ w: item.h, h: item.w, rot: true });
+
+    // Best Short Side Fit: เลือกช่องที่เหลือเศษด้านสั้นน้อยสุด, tie-break บนซ้าย
+    let best = null;
+    for (let i = 0; i < free.length; i++) {
+      const fr = free[i];
+      for (const o of oris) {
+        if (o.w <= fr.w && o.h <= fr.h) {
+          const leftH = fr.w - o.w, leftV = fr.h - o.h;
+          const shortSide = Math.min(leftH, leftV), longSide = Math.max(leftH, leftV);
+          if (!best || shortSide < best.shortSide ||
+             (shortSide === best.shortSide && (longSide < best.longSide ||
+             (longSide === best.longSide && (fr.y < best.y || (fr.y === best.y && fr.x < best.x)))))) {
+            best = { o, shortSide, longSide, x: fr.x, y: fr.y };
+          }
+        }
+      }
+    }
+
+    if (!best) { unplaced.push(item); continue; }
+
+    const { o, x, y } = best;
+    placed.push({ ...item, x, y, w: o.w, h: o.h, rotated: o.rot });
+
+    // พื้นที่ที่ถูกใช้ (รวม gap รอบชิ้น เพื่อกันชิ้นติดกัน)
+    const used = { x, y, w: o.w + gap, h: o.h + gap };
+    const next = [];
+    for (const fr of free) {
+      // ไม่ทับกัน เก็บไว้ทั้งอัน
+      if (used.x >= fr.x + fr.w || used.x + used.w <= fr.x || used.y >= fr.y + fr.h || used.y + used.h <= fr.y) {
+        next.push(fr); continue;
+      }
+      // ตัด free-rect ที่ทับ ออกเป็นชิ้นซ้าย/ขวา/บน/ล่าง
+      if (used.x > fr.x) next.push({ x: fr.x, y: fr.y, w: used.x - fr.x, h: fr.h });
+      if (used.x + used.w < fr.x + fr.w) next.push({ x: used.x + used.w, y: fr.y, w: fr.x + fr.w - (used.x + used.w), h: fr.h });
+      if (used.y > fr.y) next.push({ x: fr.x, y: fr.y, w: fr.w, h: used.y - fr.y });
+      if (used.y + used.h < fr.y + fr.h) next.push({ x: fr.x, y: used.y + used.h, w: fr.w, h: fr.y + fr.h - (used.y + used.h) });
+    }
+    free = pruneFreeRects(next);
+  }
+
+  return { placed, unplaced };
 }
 
 // ── Main nesting runner ────────────────────────────────────
@@ -2427,11 +2509,11 @@ function runNesting() {
     return out;
   }
 
-  // Find max N (full sets that fit on 1 sheet) — use guillotinePack for efficiency
+  // Find max N (full sets that fit on 1 sheet) — MaxRects packs tighter
   let bestN = 0, bestResult = null;
   for (let n = 1; n <= 200; n++) {
     const expanded = expandPieces(n, dims);
-    const res = guillotinePack(expanded, dims.w, dims.h, gap, rot);
+    const res = maxRectsPack(expanded, dims.w, dims.h, gap, rot);
     if (res.unplaced.length === 0) { bestN = n; bestResult = res; }
     else break;
   }
@@ -2477,11 +2559,11 @@ function runNesting() {
 
   if (fitsOther) {
     for (let n = 1; n <= 200; n++) {
-      const res2 = shelfPack(expandPieces(n, otherDims), otherDims.w, otherDims.h, gap, rot);
+      const res2 = maxRectsPack(expandPieces(n, otherDims), otherDims.w, otherDims.h, gap, rot);
       if (res2.unplaced.length === 0) otherBestN = n; else break;
     }
     if (otherBestN > 0) {
-      const res2 = shelfPack(expandPieces(otherBestN, otherDims), otherDims.w, otherDims.h, gap, rot);
+      const res2 = maxRectsPack(expandPieces(otherBestN, otherDims), otherDims.w, otherDims.h, gap, rot);
       const used2 = res2.placed.reduce((s, p) => s + p.w * p.h, 0);
       otherWastePct = (otherDims.w * otherDims.h - used2) / (otherDims.w * otherDims.h) * 100;
     }
