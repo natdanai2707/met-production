@@ -108,15 +108,23 @@ export default function Home() {
     try {
       let image_url = data.image_url || null
       if (imageFile) {
-        const file = await compressImage(imageFile)
-        const path = `orders/${Date.now()}.${storageExt(file)}`
-        await withRetry(async () => {
-          const r = await supabase.storage.from('met-images').upload(path, file)
-          if (r.error) throw r.error
-          return r
-        })
-        const { data: urlData } = supabase.storage.from('met-images').getPublicUrl(path)
-        image_url = urlData.publicUrl
+        try {
+          const file = await compressImage(imageFile)
+          const path = `orders/${Date.now()}.${storageExt(file)}`
+          await withRetry(async () => {
+            // upsert:true so a retry to the same path does not fail with
+            // "resource already exists" after a flaky first attempt.
+            const r = await supabase.storage.from('met-images').upload(path, file, { upsert: true })
+            if (r.error) throw r.error
+            return r
+          })
+          const { data: urlData } = supabase.storage.from('met-images').getPublicUrl(path)
+          image_url = urlData.publicUrl
+        } catch (upErr) {
+          console.error('Image upload failed:', upErr)
+          const m = (upErr as { message?: string })?.message || String(upErr)
+          throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + m)
+        }
       }
 
       const payload = { ...data, image_url }
@@ -154,8 +162,11 @@ export default function Home() {
       }
       setModalOpen(false)
       setEditOrder(null)
-    } catch {
-      toast.error('บันทึกไม่สำเร็จ, ตรวจสอบการเชื่อมต่อแล้วลองใหม่')
+    } catch (err) {
+      // Surface the real reason so a failure is diagnosable, not just "check connection".
+      console.error('Save order failed:', err)
+      const msg = (err as { message?: string })?.message || String(err)
+      toast.error('บันทึกไม่สำเร็จ: ' + msg)
       // Reconcile local state with the server after a failed write.
       fetchOrders()
     } finally {
