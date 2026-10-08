@@ -566,6 +566,10 @@
         </thead>
         <tbody id="dbTable"></tbody>
       </table>
+      <datalist id="dbSheetSizes">
+        <option value="4×8'"></option>
+        <option value="5×10'"></option>
+      </datalist>
       <button class="btn btn-outline btn-sm no-print" style="margin-top:12px;" onclick="addDbMaterial()">➕ เพิ่มวัสดุ</button>
     </div>
   </div>
@@ -738,8 +742,29 @@ const DEFAULT_SERVICE_RATES = [
 // ── ฐานข้อมูลที่แก้ไขได้ (เก็บใน localStorage เครื่องนี้) ─────────
 // MATERIALS และ SERVICE_RATES เริ่มจากค่า default แล้วทับด้วยค่าที่ผู้ใช้บันทึกไว้
 const DB_STORAGE_KEY = 'met_calc_db_v1';
-const SHEET_SIZES = Object.keys(SHEET_AREA_SQM);   // ขนาดแผ่นที่รองรับ
-const MAT_TYPES = ['Stainless', 'Aluminum', 'Steel']; // ชนิดที่มีสูตรค่าตัด/ขัด
+const SHEET_SIZES = Object.keys(SHEET_AREA_SQM);   // ขนาดแผ่นมาตรฐาน (ใช้ใน datalist)
+// ชนิดวัสดุ: เก็บ key ภาษาอังกฤษ (ให้สูตรค่าตัด/ขัดทำงาน) แต่โชว์ชื่อไทย
+const MAT_TYPES = ['Steel', 'Stainless', 'Aluminum'];
+const TYPE_LABELS = { Steel: 'เหล็กดำ', Stainless: 'สแตนเลส', Aluminum: 'อลูมิเนียม' };
+function typeLabel(t) { return TYPE_LABELS[t] || t; }
+
+// แปลงข้อความขนาดแผ่นเป็นมิติ + พื้นที่ 2 ด้าน (ตร.ม.)
+// รองรับ preset ("4×8'", "5×10'") และขนาดกำหนดเองเป็น mm เช่น "1220x2440"
+function parseSheetSize(sizeStr) {
+  if (sizeStr in SHEET_AREA_SQM) {
+    const d = SHEET_MM[sizeStr.includes('10') ? '5x10' : '4x8'];
+    return { w: d.w, h: d.h, area2: SHEET_AREA_SQM[sizeStr] };
+  }
+  const m = String(sizeStr || '').match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/i);
+  if (m) {
+    const w = parseFloat(m[1]), h = parseFloat(m[2]);
+    if (w > 0 && h > 0) return { w, h, area2: 2 * w * h / 1e6 };
+  }
+  return null;
+}
+// พื้นที่ผิว 2 ด้าน (ตร.ม.) ของแผ่นตามขนาดที่ระบุ, 0 ถ้าอ่านไม่ได้
+function sheetArea2(sizeStr) { const p = parseSheetSize(sizeStr); return p ? p.area2 : 0; }
+
 let MATERIALS = DEFAULT_MATERIALS.map(m => ({ ...m }));
 let SERVICE_RATES = DEFAULT_SERVICE_RATES.map(r => ({ ...r }));
 let dbMatCounter = 0;
@@ -922,7 +947,7 @@ function renderMaterials() {
   materials.forEach(m => {
     const mat = MATERIALS.find(x => x.id === m.matId);
     const costPerPiece = mat && m.yield > 0 ? mat.price / m.yield : 0;
-    const areaPerPiece = mat ? SHEET_AREA_SQM[mat.size] / Math.max(m.yield,0.01) : 0;
+    const areaPerPiece = mat ? sheetArea2(mat.size) / Math.max(m.yield,0.01) : 0;
 
     const div = document.createElement('div');
     div.className = 'material-row cols-6';
@@ -931,8 +956,8 @@ function renderMaterials() {
         <label>ประเภทวัสดุ</label>
         <select class="input-yellow" onchange="updateMaterial(${m.id},'matId',this.value)">
           <option value="">-- เลือกวัสดุ --</option>
-          ${MATERIALS.map(x => `<option value="${x.id}" ${x.id===m.matId?'selected':''}>${x.type} ${x.size} ${x.thick}mm${x.note?' ('+x.note+')':''}</option>`).join('')}
-          <option value="__custom__" ${m.matId==='__custom__'?'selected':''}>กำหนดเอง</option>
+          ${MATERIALS.map(x => `<option value="${x.id}" ${x.id===m.matId?'selected':''}>${typeLabel(x.type)} ${x.size} ${x.thick}mm${x.note?' ('+x.note+')':''}</option>`).join('')}
+          <option value="__custom__" ${m.matId==='__custom__'?'selected':''}>กำหนดเอง (ราคาอย่างเดียว)</option>
         </select>
       </div>
       <div>
@@ -1013,7 +1038,7 @@ function renderServices() {
   if (nestPolishResult) {
     const np = nestPolishResult;
     const mat = np.matId ? MATERIALS.find(m => m.id === np.matId) : null;
-    const matLabel = mat ? `${mat.type} ${mat.size} ${mat.thick}mm` : np.matType;
+    const matLabel = mat ? `${typeLabel(mat.type)} ${mat.size} ${mat.thick}mm` : np.matType;
     const polishCost = np.matType === 'Aluminum' ? np.scotch : np.hairline;
     const polishName = np.matType === 'Aluminum' ? 'ขัดสก็อตไบร์ท' : 'ขัดแฮร์ไลน์';
     bannerHtml = `<div class="nest-link-banner no-print">
@@ -1224,7 +1249,7 @@ function calculate() {
     const autoCost = (sheetPrice / yld) * sheets;
     const cost = m.costOverride!=null ? m.costOverride : autoCost;
     matCost += cost;
-    const name = mat ? `${mat.type} ${mat.size} ${mat.thick}mm` : (m.matId==='__custom__' ? 'กำหนดเอง' : '(ไม่ได้เลือก)');
+    const name = mat ? `${typeLabel(mat.type)} ${mat.size} ${mat.thick}mm` : (m.matId==='__custom__' ? 'กำหนดเอง' : '(ไม่ได้เลือก)');
     const formula = m.costOverride!=null ? `แก้ไขเอง` : `฿${fmt(sheetPrice)}÷${yld}×${sheets}`;
     matBreakdown.push({ name: name + (m.remark?` (${m.remark})`:''), formula, cost });
   });
@@ -1748,7 +1773,7 @@ function renderCompareSelect() {
     const nestMat = MATERIALS.find(m => m.id === lastNestData.selMatId);
     badge.innerHTML = `<div class="nest-link-banner" style="margin-bottom:0;">
       <span>📐</span>
-      <span style="font-size:12px;">Nesting ล่าสุด: <b>${nestMat ? nestMat.type+' '+nestMat.size+' '+nestMat.thick+'mm' : ''}</b>
+      <span style="font-size:12px;">Nesting ล่าสุด: <b>${nestMat ? typeLabel(nestMat.type)+' '+nestMat.size+' '+nestMat.thick+'mm' : ''}</b>
         → Yield <b>${lastNestData.bestN}</b> ชิ้น/แผ่น (${lastNestData.selSize})
         ${lastNestData.fitsOther && lastNestData.otherBestN > 0 ? `· <b>${lastNestData.otherBestN}</b> ชิ้น/แผ่น (${lastNestData.otherSize})` : ''}
         — Yield จะถูกกรอกอัตโนมัติตามขนาดแผ่น
@@ -1771,7 +1796,7 @@ function renderCompareSelect() {
     btn.id = `cmp_label_${m.id}`;
     btn.style.cssText = `display:inline-flex;align-items:center;gap:6px;background:${bg};border:1.5px solid ${border};border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;transition:border-color 0.15s;`;
     btn.innerHTML = `<input type="checkbox" id="${id}" value="${m.id}" ${checked} onchange="onCmpCheck('${m.id}',this.checked)" style="width:auto;">
-      <span><b>${m.type}</b> ${m.size} ${m.thick}mm${m.note?' <span style=\'color:var(--muted);font-size:11px;\'>'+m.note+'</span>':''}</span>
+      <span><b>${typeLabel(m.type)}</b> ${m.size} ${m.thick}mm${m.note?' <span style=\'color:var(--muted);font-size:11px;\'>'+m.note+'</span>':''}</span>
       <span style="color:var(--accent);font-weight:700;">฿${m.price.toLocaleString()}</span>
       ${nestY ? `<span class="badge badge-green" title="Yield จาก Nesting">✂️${nestY}</span>` : ''}`;
     container.appendChild(btn);
@@ -1806,11 +1831,11 @@ function renderCmpYieldConfig() {
     const st = cmpState[m.id];
     const yld = st.yield;
     const matCostPerPiece = yld > 0 ? m.price / yld : 0;
-    const areaSqm = yld > 0 ? SHEET_AREA_SQM[m.size] / yld : 0; // 2-sided area per piece
+    const areaSqm = yld > 0 ? sheetArea2(m.size) / yld : 0; // 2-sided area per piece
     const isFromNest = st.fromNest && nestYieldForSize(m.size) === yld;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><b>${m.type}</b> <span style="font-size:12px;color:var(--muted);">${m.note||''}</span></td>
+      <td><b>${typeLabel(m.type)}</b> <span style="font-size:12px;color:var(--muted);">${m.note||''}</span></td>
       <td class="td-center">${m.size}</td>
       <td class="td-center">${m.thick} mm</td>
       <td class="td-num">฿${m.price.toLocaleString()}</td>
@@ -1872,7 +1897,7 @@ function renderCompare() {
     const cutCost = cutBase * (CUT_FACTOR[m.type] || 1.0) * thickFactor;
 
     // Polish cost: area per piece × rate
-    const areaSqm  = yld > 0 ? SHEET_AREA_SQM[m.size] / yld : 0;
+    const areaSqm  = yld > 0 ? sheetArea2(m.size) / yld : 0;
     const polishCost = areaSqm * (POLISH_RATE[m.type] || 0);
 
     const total = matCost + cutCost + polishCost + shared;
@@ -1964,7 +1989,7 @@ function renderCompare() {
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;">
       <div style="background:rgba(143,186,159,0.12);border-radius:8px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:4px;">🥇 วัสดุประหยัดที่สุด</div>
-        <div style="font-size:15px;font-weight:700;">${best.m.type} ${best.m.size} ${best.m.thick}mm</div>
+        <div style="font-size:15px;font-weight:700;">${typeLabel(best.m.type)} ${best.m.size} ${best.m.thick}mm</div>
         <div style="font-size:20px;font-weight:800;color:var(--success);">฿${fmt(best.sell)}/ชิ้น</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
           วัสดุ ฿${fmt(best.matCost)} · ตัด ฿${fmt(best.cutCost)} · ขัด ฿${fmt(best.polishCost)}
@@ -1972,7 +1997,7 @@ function renderCompare() {
       </div>
       <div style="background:rgba(196,96,96,0.12);border-radius:8px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px;">⚠️ วัสดุแพงที่สุด</div>
-        <div style="font-size:15px;font-weight:700;">${worst.m.type} ${worst.m.size} ${worst.m.thick}mm</div>
+        <div style="font-size:15px;font-weight:700;">${typeLabel(worst.m.type)} ${worst.m.size} ${worst.m.thick}mm</div>
         <div style="font-size:20px;font-weight:800;color:var(--danger);">฿${fmt(worst.sell)}/ชิ้น</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
           วัสดุ ฿${fmt(worst.matCost)} · ตัด ฿${fmt(worst.cutCost)} · ขัด ฿${fmt(worst.polishCost)}
@@ -1983,7 +2008,7 @@ function renderCompare() {
         <div style="font-size:12px;color:var(--muted);">ต่อ 1 ชิ้น</div>
         <div style="font-size:20px;font-weight:800;color:var(--accent);">฿${fmt(diff)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-          ${worst.m.type} แพงกว่า ${best.m.type} ${fmt(diff/best.sell*100,1)}%
+          ${typeLabel(worst.m.type)} แพงกว่า ${typeLabel(best.m.type)} ${fmt(diff/best.sell*100,1)}%
         </div>
       </div>
     </div>`;
@@ -2005,13 +2030,13 @@ function renderDatabase() {
   const tbody = document.getElementById('dbTable');
   tbody.innerHTML = '';
   MATERIALS.forEach(m => {
-    const area = SHEET_AREA_SQM[m.size] != null ? fmt(SHEET_AREA_SQM[m.size], 4) : '-';
-    const typeOpts = MAT_TYPES.map(t => `<option ${t === m.type ? 'selected' : ''}>${t}</option>`).join('');
-    const sizeOpts = SHEET_SIZES.map(s => `<option ${s === m.size ? 'selected' : ''}>${s}</option>`).join('');
+    const areaVal = sheetArea2(m.size);
+    const area = areaVal ? fmt(areaVal, 4) : '-';
+    const typeOpts = MAT_TYPES.map(t => `<option value="${t}" ${t === m.type ? 'selected' : ''}>${typeLabel(t)}</option>`).join('');
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><select style="${cellInput}" onchange="updateDbMaterial('${m.id}','type',this.value)">${typeOpts}</select></td>
-      <td><select style="${cellInput}" onchange="updateDbMaterial('${m.id}','size',this.value)">${sizeOpts}</select></td>
+      <td><input type="text" list="dbSheetSizes" style="${cellInput}" value="${escAttr(m.size)}" placeholder="เช่น 1220x2440 (mm)" onchange="updateDbMaterial('${m.id}','size',this.value)"></td>
       <td><input type="number" step="0.1" min="0" style="${cellInput}text-align:center;" value="${escAttr(m.thick)}" onchange="updateDbMaterial('${m.id}','thick',this.value)"></td>
       <td><input type="number" step="1" min="0" style="${cellInput}text-align:right;" value="${escAttr(m.price)}" onchange="updateDbMaterial('${m.id}','price',this.value)"></td>
       <td class="td-num">${area}</td>
@@ -2051,7 +2076,7 @@ function updateDbMaterial(id, key, val) {
 
 function addDbMaterial() {
   const id = `custom_${Date.now()}_${++dbMatCounter}`;
-  MATERIALS.push({ id, type: 'Stainless', size: SHEET_SIZES[0], thick: 1.5, price: 0, note: '' });
+  MATERIALS.push({ id, type: MAT_TYPES[0], size: SHEET_SIZES[0], thick: 1.5, price: 0, note: '' });
   saveDbOverrides();
   renderDatabase();
   refreshMaterialConsumers();
@@ -2151,7 +2176,7 @@ function refreshNestSheet() {
   if (!sel) return;
   const cur = sel.value;
   sel.innerHTML = '<option value="">-- เลือกวัสดุ --</option>' +
-    MATERIALS.map(m => `<option value="${m.id}">${m.type} ${m.size} ${m.thick}mm${m.note?' ('+m.note+')':''} — ฿${m.price.toLocaleString()}</option>`).join('');
+    MATERIALS.map(m => `<option value="${m.id}">${typeLabel(m.type)} ${m.size} ${m.thick}mm${m.note?' ('+m.note+')':''} — ฿${m.price.toLocaleString()}</option>`).join('');
   if (MATERIALS.some(m => m.id === cur)) sel.value = cur;
 }
 
@@ -2482,7 +2507,11 @@ function runNesting() {
   if (nestPieces.length === 0) { alert('กรุณาเพิ่มชิ้นงานอย่างน้อย 1 รายการ'); return; }
 
   const mat   = MATERIALS.find(m => m.id === matId);
-  const dims  = mat.size.includes('10') ? SHEET_MM['5x10'] : SHEET_MM['4x8'];
+  // ใช้มิติจากขนาดที่ระบุ (รองรับขนาดกำหนดเอง mm) ถ้าอ่านไม่ได้ fallback เป็น 4×8'
+  const parsedSize = parseSheetSize(mat.size);
+  const dims  = parsedSize
+    ? { w: parsedSize.w, h: parsedSize.h, label: mat.size }
+    : SHEET_MM['4x8'];
 
   // Validate each piece fits at all
   for (const p of nestPieces) {
@@ -2546,11 +2575,13 @@ function runNesting() {
   }
 
   // ── Compare with other sheet size ────────────────────────
+  // เทียบเฉพาะเมื่อใช้ขนาดมาตรฐาน (4×8' / 5×10') ขนาดกำหนดเองไม่มีคู่เทียบ
+  const isPresetSize = mat.size in SHEET_AREA_SQM;
   const otherKey  = mat.size.includes('10') ? '4x8' : '5x10';
   const otherDims = SHEET_MM[otherKey];
   let otherBestN = 0, otherWastePct = 0, otherMatPrice = null;
 
-  const fitsOther = nestPieces.every(p => {
+  const fitsOther = isPresetSize && nestPieces.every(p => {
     const bb = pieceBBox(p);
     const ok1 = (bb.w + 2*gap <= otherDims.w) && (bb.h + 2*gap <= otherDims.h);
     const ok2 = rot && p.shape !== 'circle' && (bb.h + 2*gap <= otherDims.w) && (bb.w + 2*gap <= otherDims.h);
@@ -2650,7 +2681,7 @@ function renderNestStats(bestN, result, sheetArea, usedArea, wastePct, mat, dims
       </div>
       <div class="result-box">
         <div class="label">แผ่นวัสดุ</div>
-        <div class="value" style="font-size:14px;">${mat.type} ${mat.size} ${mat.thick}mm</div>
+        <div class="value" style="font-size:14px;">${typeLabel(mat.type)} ${mat.size} ${mat.thick}mm</div>
         <div style="font-size:12px;color:var(--muted);">${dims.w}×${dims.h}mm · gap ${gap}mm</div>
       </div>
     </div>`;
